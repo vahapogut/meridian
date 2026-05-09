@@ -5,8 +5,18 @@
 <h1 align="center">Meridian</h1>
 
 <p align="center">
-  <b>Reactive Local-First Sync Engine for PostgreSQL.</b><br/>
-  Offline-first. Real-time. Conflict-resolved. No sync backend to write.
+  <b>Reactive Local-First Sync Engine for PostgreSQL.</b><br/><br/>
+  Offline-first.<br/>
+  Real-time.<br/>
+  Conflict-resolved.<br/>
+  No sync backend to write.
+</p>
+
+<p align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache-2.0"></a>
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Local--First-Success?style=flat&color=10b981" alt="Local-First">
 </p>
 
 <p align="center">
