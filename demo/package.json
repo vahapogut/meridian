@@ -1,0 +1,23 @@
+{
+  "name": "meridian-demo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "tsx watch server.ts",
+    "dev:client": "vite"
+  },
+  "dependencies": {
+    "@meridian-sync/client": "workspace:*",
+    "@meridian-sync/server": "workspace:*",
+    "@meridian-sync/shared": "workspace:*",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "tsx": "^4.10.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.2.0"
+  }
+}

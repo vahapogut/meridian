@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meridian Sync Engine — Demo</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <header class="glass-panel">
+      <div class="logo">
+        <div class="logo-icon">M</div>
+        <h1>Meridian</h1>
+      </div>
+      <div class="status-badge" id="conn-status">
+        <span class="status-dot disconnected"></span>
+        <span class="status-text">Disconnected</span>
+      </div>
+    </header>
+
+    <main>
+      <div class="todo-panel glass-panel">
+        <form id="todo-form">
+          <input type="text" id="todo-input" placeholder="What needs to be done?" autocomplete="off" />
+          <button type="submit" class="primary-btn">Add</button>
+        </form>
+
+        <ul id="todo-list" class="todo-list">
+          <!-- Todos injected here by app.ts -->
+        </ul>
+      </div>
+
+      <div class="side-panels">
+        <div class="glass-panel debug-panel">
+          <h3>Sync Queue <span id="queue-count" class="badge">0</span></h3>
+          <ul id="queue-list" class="debug-list"></ul>
+        </div>
+        
+        <div class="glass-panel debug-panel">
+          <h3>Presence <span id="peer-count" class="badge">0</span></h3>
+          <ul id="presence-list" class="debug-list"></ul>
+        </div>
+      </div>
+    </main>
+
+    <div id="cursors-container"></div>
+  </div>
+
+  <script type="module" src="./app.ts"></script>
+</body>
+</html>
