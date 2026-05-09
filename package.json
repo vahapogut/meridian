@@ -1,0 +1,14 @@
+{
+  "name": "meridian",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zero-config local-first sync engine for PostgreSQL",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "dev": "pnpm --filter demo dev",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": ["crdt", "sync", "local-first", "postgresql", "indexeddb", "websocket", "offline-first"],
+  "license": "MIT"
+}

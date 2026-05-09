@@ -1,0 +1,392 @@
+"use strict";
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/index.ts
+var index_exports = {};
+__export(index_exports, {
+  DELETED_FIELD: () => DELETED_FIELD,
+  HLC: () => HLC,
+  compareHLC: () => compareHLC,
+  compareHLCStrings: () => compareHLCStrings,
+  createLWWMap: () => createLWWMap,
+  createRegister: () => createRegister,
+  defineSchema: () => defineSchema,
+  deserializeHLC: () => deserializeHLC,
+  extractMetadata: () => extractMetadata,
+  extractValues: () => extractValues,
+  fieldTypeToSQL: () => fieldTypeToSQL,
+  generateNodeId: () => generateNodeId,
+  getDefaults: () => getDefaults,
+  getFieldNames: () => getFieldNames,
+  getLatestHLC: () => getLatestHLC,
+  isDeleted: () => isDeleted,
+  maxHLC: () => maxHLC,
+  mergeLWWMaps: () => mergeLWWMaps,
+  mergeRegisters: () => mergeRegisters,
+  reconstructLWWMap: () => reconstructLWWMap,
+  serializeHLC: () => serializeHLC,
+  validateAndNormalize: () => validateAndNormalize,
+  z: () => z
+});
+module.exports = __toCommonJS(index_exports);
+
+// src/hlc.ts
+var MAX_COUNTER = 65535;
+var HLC_SEPARATOR = "-";
+var HLC = class {
+  _wallTime;
+  _counter;
+  _nodeId;
+  constructor(nodeId, initialTime) {
+    this._nodeId = nodeId;
+    this._wallTime = initialTime ?? Date.now();
+    this._counter = 0;
+  }
+  /** Current node ID */
+  get nodeId() {
+    return this._nodeId;
+  }
+  /**
+   * Generate a timestamp for a local event.
+   * Ensures monotonicity even if the system clock goes backward.
+   */
+  now() {
+    const physicalTime = Date.now();
+    if (physicalTime > this._wallTime) {
+      this._wallTime = physicalTime;
+      this._counter = 0;
+    } else {
+      this._counter++;
+      if (this._counter > MAX_COUNTER) {
+        throw new Error(
+          `[Meridian HLC] Counter overflow: more than ${MAX_COUNTER} events in 1ms. This indicates an unusually high event rate.`
+        );
+      }
+    }
+    return {
+      wallTime: this._wallTime,
+      counter: this._counter,
+      nodeId: this._nodeId
+    };
+  }
+  /**
+   * Generate a timestamp for an outgoing message.
+   * Equivalent to `now()` but semantically indicates a send event.
+   */
+  send() {
+    return this.now();
+  }
+  /**
+   * Update the local clock upon receiving a remote timestamp.
+   * Merges the remote time with local time to maintain causal ordering.
+   *
+   * @param remote - The timestamp received from another node
+   * @returns The updated local timestamp
+   */
+  recv(remote) {
+    const physicalTime = Date.now();
+    if (physicalTime > this._wallTime && physicalTime > remote.wallTime) {
+      this._wallTime = physicalTime;
+      this._counter = 0;
+    } else if (remote.wallTime > this._wallTime) {
+      this._wallTime = remote.wallTime;
+      this._counter = remote.counter + 1;
+    } else if (this._wallTime > remote.wallTime) {
+      this._counter++;
+    } else {
+      this._counter = Math.max(this._counter, remote.counter) + 1;
+    }
+    if (this._counter > MAX_COUNTER) {
+      throw new Error(
+        `[Meridian HLC] Counter overflow during recv. This may indicate severe clock skew between nodes.`
+      );
+    }
+    return {
+      wallTime: this._wallTime,
+      counter: this._counter,
+      nodeId: this._nodeId
+    };
+  }
+  /**
+   * Get the current HLC state without advancing it.
+   */
+  peek() {
+    return {
+      wallTime: this._wallTime,
+      counter: this._counter,
+      nodeId: this._nodeId
+    };
+  }
+};
+function serializeHLC(ts) {
+  const counterStr = ts.counter.toString().padStart(4, "0");
+  return `${ts.wallTime}${HLC_SEPARATOR}${counterStr}${HLC_SEPARATOR}${ts.nodeId}`;
+}
+function deserializeHLC(str) {
+  const firstSep = str.indexOf(HLC_SEPARATOR);
+  const secondSep = str.indexOf(HLC_SEPARATOR, firstSep + 1);
+  if (firstSep === -1 || secondSep === -1) {
+    throw new Error(`[Meridian HLC] Invalid HLC string: "${str}"`);
+  }
+  return {
+    wallTime: parseInt(str.substring(0, firstSep), 10),
+    counter: parseInt(str.substring(firstSep + 1, secondSep), 10),
+    nodeId: str.substring(secondSep + 1)
+  };
+}
+function compareHLC(a, b) {
+  if (a.wallTime !== b.wallTime) {
+    return a.wallTime - b.wallTime;
+  }
+  if (a.counter !== b.counter) {
+    return a.counter - b.counter;
+  }
+  return a.nodeId < b.nodeId ? -1 : a.nodeId > b.nodeId ? 1 : 0;
+}
+function compareHLCStrings(a, b) {
+  return compareHLC(deserializeHLC(a), deserializeHLC(b));
+}
+function maxHLC(a, b) {
+  return compareHLC(a, b) >= 0 ? a : b;
+}
+function generateNodeId() {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  const array = new Uint8Array(8);
+  if (typeof globalThis.crypto !== "undefined" && globalThis.crypto.getRandomValues) {
+    globalThis.crypto.getRandomValues(array);
+    for (let i = 0; i < 8; i++) {
+      result += chars[array[i] % chars.length];
+    }
+  } else {
+    for (let i = 0; i < 8; i++) {
+      result += chars[Math.floor(Math.random() * chars.length)];
+    }
+  }
+  return result;
+}
+
+// src/crdt.ts
+function createRegister(value, hlc, nodeId) {
+  return { value, hlc, nodeId };
+}
+function mergeRegisters(local, remote) {
+  const cmp = compareHLCStrings(local.hlc, remote.hlc);
+  if (cmp > 0) return local;
+  if (cmp < 0) return remote;
+  return local.nodeId >= remote.nodeId ? local : remote;
+}
+var DELETED_FIELD = "__deleted";
+function createLWWMap(fields, hlc, nodeId) {
+  const map = {};
+  for (const [key, value] of Object.entries(fields)) {
+    map[key] = createRegister(value, hlc, nodeId);
+  }
+  if (!(DELETED_FIELD in map)) {
+    map[DELETED_FIELD] = createRegister(false, hlc, nodeId);
+  }
+  return map;
+}
+function mergeLWWMaps(local, remote) {
+  const merged = {};
+  const conflicts = [];
+  const allFields = /* @__PURE__ */ new Set([...Object.keys(local), ...Object.keys(remote)]);
+  for (const field of allFields) {
+    const localReg = local[field];
+    const remoteReg = remote[field];
+    if (!localReg) {
+      merged[field] = remoteReg;
+    } else if (!remoteReg) {
+      merged[field] = localReg;
+    } else {
+      const winner = mergeRegisters(localReg, remoteReg);
+      merged[field] = winner;
+      if (localReg.value !== remoteReg.value) {
+        const loser = winner === localReg ? remoteReg : localReg;
+        conflicts.push({
+          field,
+          winnerValue: winner.value,
+          winnerHlc: winner.hlc,
+          winnerNodeId: winner.nodeId,
+          loserValue: loser.value,
+          loserHlc: loser.hlc,
+          loserNodeId: loser.nodeId
+        });
+      }
+    }
+  }
+  return { merged, conflicts };
+}
+function extractValues(map) {
+  const result = {};
+  for (const [key, reg] of Object.entries(map)) {
+    if (key === DELETED_FIELD) continue;
+    result[key] = reg.value;
+  }
+  return result;
+}
+function isDeleted(map) {
+  return map[DELETED_FIELD]?.value === true;
+}
+function getLatestHLC(map) {
+  let latest = "";
+  for (const reg of Object.values(map)) {
+    if (!latest || compareHLCStrings(reg.hlc, latest) > 0) {
+      latest = reg.hlc;
+    }
+  }
+  return latest;
+}
+function extractMetadata(map) {
+  const meta = {};
+  for (const [key, reg] of Object.entries(map)) {
+    meta[key] = reg.hlc;
+  }
+  return meta;
+}
+function reconstructLWWMap(values, metadata, defaultNodeId = "server") {
+  const map = {};
+  for (const [key, value] of Object.entries(values)) {
+    const hlc = metadata[key];
+    if (hlc) {
+      const parsed = deserializeHLC(hlc);
+      map[key] = createRegister(value, hlc, parsed.nodeId);
+    } else {
+      map[key] = createRegister(value, "0-0000-" + defaultNodeId, defaultNodeId);
+    }
+  }
+  if (metadata[DELETED_FIELD]) {
+    const deletedValue = values[DELETED_FIELD] ?? false;
+    const parsed = deserializeHLC(metadata[DELETED_FIELD]);
+    map[DELETED_FIELD] = createRegister(deletedValue, metadata[DELETED_FIELD], parsed.nodeId);
+  }
+  return map;
+}
+
+// src/schema.ts
+function withDefault(field, defaultValue) {
+  return { ...field, required: false, defaultValue };
+}
+function createFieldBuilder(type) {
+  const def = { type, required: true };
+  return {
+    ...def,
+    default(value) {
+      return withDefault(def, value);
+    }
+  };
+}
+var z = {
+  string: () => createFieldBuilder("string"),
+  number: () => createFieldBuilder("number"),
+  boolean: () => createFieldBuilder("boolean"),
+  array: () => createFieldBuilder("array"),
+  object: () => createFieldBuilder("object")
+};
+function defineSchema(definition) {
+  for (const [name, fields] of Object.entries(definition.collections)) {
+    if (!("id" in fields)) {
+      throw new Error(
+        `[Meridian Schema] Collection "${name}" must have an "id" field.`
+      );
+    }
+  }
+  return definition;
+}
+function getDefaults(schema) {
+  const defaults = {};
+  for (const [field, def] of Object.entries(schema)) {
+    if ("defaultValue" in def && def.defaultValue !== void 0) {
+      defaults[field] = def.defaultValue;
+    }
+  }
+  return defaults;
+}
+function validateAndNormalize(doc, schema) {
+  const result = { ...doc };
+  const defaults = getDefaults(schema);
+  for (const [field, defaultValue] of Object.entries(defaults)) {
+    if (!(field in result) || result[field] === void 0) {
+      result[field] = defaultValue;
+    }
+  }
+  for (const [field, def] of Object.entries(schema)) {
+    const value = result[field];
+    if (value === void 0) {
+      if (def.required) {
+        throw new Error(
+          `[Meridian Schema] Required field "${field}" is missing.`
+        );
+      }
+      continue;
+    }
+    const actualType = Array.isArray(value) ? "array" : typeof value;
+    if (actualType !== def.type) {
+      throw new Error(
+        `[Meridian Schema] Field "${field}" expected type "${def.type}" but got "${actualType}".`
+      );
+    }
+  }
+  return result;
+}
+function getFieldNames(schema) {
+  return Object.keys(schema);
+}
+function fieldTypeToSQL(type) {
+  switch (type) {
+    case "string":
+      return "TEXT";
+    case "number":
+      return "NUMERIC";
+    case "boolean":
+      return "BOOLEAN";
+    case "array":
+      return "JSONB";
+    case "object":
+      return "JSONB";
+    default:
+      return "TEXT";
+  }
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  DELETED_FIELD,
+  HLC,
+  compareHLC,
+  compareHLCStrings,
+  createLWWMap,
+  createRegister,
+  defineSchema,
+  deserializeHLC,
+  extractMetadata,
+  extractValues,
+  fieldTypeToSQL,
+  generateNodeId,
+  getDefaults,
+  getFieldNames,
+  getLatestHLC,
+  isDeleted,
+  maxHLC,
+  mergeLWWMaps,
+  mergeRegisters,
+  reconstructLWWMap,
+  serializeHLC,
+  validateAndNormalize,
+  z
+});

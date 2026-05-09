@@ -1,0 +1,27 @@
+{
+  "name": "@meridian-sync/server",
+  "version": "0.1.0",
+  "description": "PostgreSQL sync server for Meridian — CRDT merge + WebSocket hub",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest run",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
+  },
+  "dependencies": {
+    "@meridian-sync/shared": "workspace:*",
+    "pg": "^8.13.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.0",
+    "@types/ws": "^8.5.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}
