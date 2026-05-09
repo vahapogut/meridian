@@ -175,4 +175,4 @@ Meridian is evolving to become the ultimate infra product for local-first develo
 
 ## License
 
-MIT
+Apache-2.0. Built for the community by IPEC Labs.
