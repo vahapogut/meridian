@@ -36,10 +36,10 @@ export interface SyncConfig {
   schemaVersion: number;
   /** Debug mode */
   debug: boolean;
-  /** Callbacks */
   onConnectionChange?: (state: ConnectionState) => void;
   onRollback?: (op: PendingOp, reason: string) => void;
   onConflict?: (details: { field: string; localValue: unknown; remoteValue: unknown }) => void;
+  onPresence?: (peers: Record<string, Record<string, unknown>>) => void;
 }
 
 const INITIAL_RETRY_DELAY = 1000;
@@ -57,6 +57,7 @@ export class SyncEngine {
   private retryDelay = INITIAL_RETRY_DELAY;
   private retryTimeout: ReturnType<typeof setTimeout> | null = null;
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+  private lastPongTime: number = Date.now();
   private pushInProgress = false;
   private destroyed = false;
 
@@ -163,8 +164,15 @@ export class SyncEngine {
       };
 
       this.ws.onmessage = (event) => {
+        const raw = event.data as string;
+        
+        if (raw === 'pong') {
+          this.lastPongTime = Date.now();
+          return;
+        }
+
         try {
-          const msg: ServerMessage = JSON.parse(event.data as string);
+          const msg: ServerMessage = JSON.parse(raw);
           this.handleMessage(msg);
         } catch (e) {
           this.log('❌ Failed to parse message:', e);
@@ -224,9 +232,15 @@ export class SyncEngine {
 
   private startHeartbeat(): void {
     this.clearHeartbeat();
+    this.lastPongTime = Date.now();
     this.heartbeatInterval = setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.ws.send('ping');
+        
+        if (Date.now() - this.lastPongTime > HEARTBEAT_INTERVAL * 2) {
+          this.log('⚠️ Dead connection detected (no pong received)');
+          this.ws.close();
+        }
       }
     }, HEARTBEAT_INTERVAL);
   }
@@ -275,7 +289,9 @@ export class SyncEngine {
         break;
 
       case 'presence':
-        // Handled by presence module
+        if (this.config.onPresence && 'peers' in msg) {
+          this.config.onPresence(msg.peers as Record<string, Record<string, unknown>>);
+        }
         break;
 
       case 'compaction':

@@ -171,6 +171,9 @@ export function createClient(config: MeridianClientConfig): MeridianClient {
       onConnectionChange?.(state);
     },
     onRollback,
+    onPresence: (peers) => {
+      presence.handleServerPresence(peers);
+    },
   });
 
   // Initialize tab coordinator
@@ -186,9 +189,14 @@ export function createClient(config: MeridianClientConfig): MeridianClient {
     },
     onRemoteStoreChange: (collection, docId) => {
       // Trigger reactive query re-evaluation for this collection
-      // We directly notify the store's change listeners
-      store.notifyChange(collection, docId);
+      // We directly notify the store's change listeners, marking as remote to prevent infinite broadcast loops
+      store.notifyChange(collection, docId, true);
     },
+  });
+
+  // Wire store local changes to broadcast across tabs
+  store.setOnLocalChange((collection, docId) => {
+    tabCoordinator.broadcastStoreChange(collection, docId);
   });
 
   // Wire presence send function to sync engine

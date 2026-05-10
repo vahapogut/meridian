@@ -351,60 +351,63 @@ export class PgStore {
     }
 
     const changes: ServerChange[] = [];
+    const queries: string[] = [];
 
     for (const collection of Object.keys(this.config.schema.collections)) {
       const table = this.tableName(collection);
-      const fields = Object.keys(this.config.schema.collections[collection])
+      queries.push(`SELECT '${collection}' as _collection, id, _meridian_seq, _meridian_meta, _meridian_deleted, row_to_json(t) as _data FROM ${table} t WHERE _meridian_seq > $1`);
+    }
+
+    if (queries.length === 0) return changes;
+
+    const query = queries.join(' UNION ALL ') + ' ORDER BY _meridian_seq ASC';
+    const result = await this.pool.query(query, [since]);
+
+    for (const row of result.rows) {
+      const collection = row._collection;
+      const meta = row._meridian_meta || {};
+      const seq = Number(row._meridian_seq);
+      const data = row._data;
+      const docId = row.id;
+
+      const fields = Object.keys(this.config.schema.collections[collection] || {})
         .filter(f => f !== 'id');
 
-      const result = await this.pool.query(
-        `SELECT * FROM ${table} WHERE _meridian_seq > $1 ORDER BY _meridian_seq ASC`,
-        [since]
-      );
-
-      for (const row of result.rows) {
-        const meta = row._meridian_meta || {};
-        const seq = Number(row._meridian_seq);
-
-        for (const field of fields) {
-          if (field in row && row[field] !== undefined) {
-            const hlc = meta[field] || `0-0000-server`;
-            changes.push({
-              seq,
-              op: {
-                id: `${row.id}-${field}-${hlc}`,
-                collection,
-                docId: row.id,
-                field,
-                value: row[field],
-                hlc,
-                nodeId: 'server',
-              },
-            });
-          }
-        }
-
-        // Include __deleted status
-        if (row._meridian_deleted) {
-          const hlc = meta[DELETED_FIELD] || `0-0000-server`;
+      for (const field of fields) {
+        if (field in data && data[field] !== undefined && data[field] !== null) {
+          const hlc = meta[field] || `0-0000-server`;
           changes.push({
             seq,
             op: {
-              id: `${row.id}-${DELETED_FIELD}-${hlc}`,
+              id: `${docId}-${field}-${hlc}`,
               collection,
-              docId: row.id,
-              field: DELETED_FIELD,
-              value: true,
+              docId,
+              field,
+              value: data[field],
               hlc,
               nodeId: 'server',
             },
           });
         }
       }
-    }
 
-    // Sort by seq
-    changes.sort((a, b) => a.seq - b.seq);
+      // Include __deleted status
+      if (row._meridian_deleted) {
+        const hlc = meta[DELETED_FIELD] || `0-0000-server`;
+        changes.push({
+          seq,
+          op: {
+            id: `${docId}-${DELETED_FIELD}-${hlc}`,
+            collection,
+            docId,
+            field: DELETED_FIELD,
+            value: true,
+            hlc,
+            nodeId: 'server',
+          },
+        });
+      }
+    }
 
     return changes;
   }
@@ -423,27 +426,57 @@ export class PgStore {
    * @returns Number of rows deleted
    */
   async compact(maxAgeMs: number): Promise<number> {
+    const client = await this.pool.connect();
     let totalDeleted = 0;
     const cutoffTime = Date.now() - maxAgeMs;
 
-    for (const collection of Object.keys(this.config.schema.collections)) {
-      const table = this.tableName(collection);
+    try {
+      await client.query('BEGIN');
 
-      // Delete rows where _meridian_deleted = true AND updated before cutoff
-      // We use the wallTime part of the HLC in _meridian_updated_at
-      const result = await this.pool.query(
-        `DELETE FROM ${table} WHERE _meridian_deleted = true AND 
-         CAST(SPLIT_PART(_meridian_updated_at, '-', 1) AS BIGINT) < $1`,
-        [cutoffTime]
-      );
+      for (const collection of Object.keys(this.config.schema.collections)) {
+        const table = this.tableName(collection);
 
-      totalDeleted += result.rowCount ?? 0;
+        // Delete rows where _meridian_deleted = true AND updated before cutoff
+        // We use the wallTime part of the HLC in _meridian_updated_at
+        const result = await client.query(
+          `DELETE FROM ${table} WHERE _meridian_deleted = true AND 
+           CAST(SPLIT_PART(_meridian_updated_at, '-', 1) AS BIGINT) < $1`,
+          [cutoffTime]
+        );
+
+        totalDeleted += result.rowCount ?? 0;
+      }
+
+      // Update minSeq
+      await this.updateMinSeqWithClient(client);
+
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
     }
 
-    // Update minSeq
-    await this.updateMinSeq();
-
     return totalDeleted;
+  }
+
+  private async updateMinSeqWithClient(client: any): Promise<void> {
+    let minSeq = Infinity;
+
+    for (const collection of Object.keys(this.config.schema.collections)) {
+      const table = this.tableName(collection);
+      const result = await client.query(
+        `SELECT MIN(_meridian_seq) as min_seq FROM ${table}`
+      );
+      
+      const seq = result.rows[0]?.min_seq ? Number(result.rows[0].min_seq) : Infinity;
+      if (seq < minSeq) {
+        minSeq = seq;
+      }
+    }
+
+    this.minSeq = minSeq === Infinity ? 0 : minSeq;
   }
 
   private async updateMinSeq(): Promise<void> {

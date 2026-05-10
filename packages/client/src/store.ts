@@ -38,6 +38,8 @@ export interface StoreConfig {
   schema: SchemaDefinition;
   /** Node ID for this client */
   nodeId: string;
+  /** Optional callback for local store changes to broadcast to other tabs */
+  onLocalChange?: (collection: string, docId: string) => void;
 }
 
 export interface DocWithMeta {
@@ -65,6 +67,13 @@ export class MeridianStore {
   }
 
   /**
+   * Set callback for local store changes to notify other tabs
+   */
+  public setOnLocalChange(fn: (collection: string, docId: string) => void): void {
+    this.config.onLocalChange = fn;
+  }
+
+  /**
    * Initialize IndexedDB — creates/upgrades stores as needed.
    */
   async init(): Promise<void> {
@@ -76,7 +85,14 @@ export class MeridianStore {
         // Create collection stores
         for (const name of collectionNames) {
           if (!db.objectStoreNames.contains(name)) {
-            db.createObjectStore(name, { keyPath: 'id' });
+            const store = db.createObjectStore(name, { keyPath: 'id' });
+            // Create index for every field except id to enable O(1) finds
+            const schemaDef = schema.collections[name];
+            if (schemaDef) {
+              for (const field of Object.keys(schemaDef)) {
+                if (field !== 'id') store.createIndex(field, field);
+              }
+            }
           }
         }
 
@@ -156,12 +172,14 @@ export class MeridianStore {
     const schema = this.config.schema.collections[collection];
     const pendingOps: PendingOp[] = [];
 
+    const clonedDoc = { ...doc };
+
     // Apply defaults from schema
     if (schema) {
       const defaults = getDefaults(schema);
       for (const [field, defaultValue] of Object.entries(defaults)) {
-        if (!(field in doc) || doc[field] === undefined) {
-          doc[field] = defaultValue;
+        if (!(field in clonedDoc) || clonedDoc[field] === undefined) {
+          clonedDoc[field] = defaultValue;
         }
       }
     }
@@ -170,7 +188,7 @@ export class MeridianStore {
     const existingMeta = await this.getMeta(collection, docId);
 
     // Create new CRDT map
-    const newMap = createLWWMap(doc, hlc, nodeId);
+    const newMap = createLWWMap(clonedDoc, hlc, nodeId);
 
     // Merge with existing if present
     let finalMap: LWWMap;
@@ -189,7 +207,7 @@ export class MeridianStore {
     await tx.objectStore(META_STORE).put(finalMap, `${collection}:${docId}`);
 
     // Create pending ops for each field
-    for (const [field, value] of Object.entries(doc)) {
+    for (const [field, value] of Object.entries(clonedDoc)) {
       if (field === 'id') continue;
 
       const previousValue = existingMeta?.[field]?.value ?? null;
@@ -305,7 +323,28 @@ export class MeridianStore {
     filter?: Record<string, unknown>
   ): Promise<Record<string, unknown>[]> {
     const db = this.ensureDB();
-    const allDocs = await db.getAll(collection);
+    
+    // Check if we can optimize with an IDBIndex
+    let allDocs: any[];
+    const filterKeys = filter ? Object.keys(filter) : [];
+    
+    if (filterKeys.length === 1) {
+      const key = filterKeys[0];
+      const value = filter![key];
+      // Note: idb throws if index doesn't exist, we check if it's in schema
+      const schemaDef = this.config.schema.collections[collection];
+      if (schemaDef && key in schemaDef && key !== 'id') {
+        allDocs = await db.getAllFromIndex(collection, key, IDBKeyRange.only(value));
+      } else if (key === 'id') {
+        const doc = await db.get(collection, value as string);
+        allDocs = doc ? [doc] : [];
+      } else {
+        allDocs = await db.getAll(collection);
+      }
+    } else {
+      allDocs = await db.getAll(collection);
+    }
+
     const results: Record<string, unknown>[] = [];
 
     for (const doc of allDocs) {
@@ -391,7 +430,7 @@ export class MeridianStore {
       await tx.done;
 
       affectedDocs.add(key);
-      this.notifyChange(collection, docId);
+      this.notifyChange(collection, docId, true);
     }
 
     return Array.from(affectedDocs);
@@ -558,7 +597,7 @@ export class MeridianStore {
     };
   }
 
-  public notifyChange(collection: string, docId: string): void {
+  public notifyChange(collection: string, docId: string, isRemote = false): void {
     const listeners = this.changeListeners.get(collection);
     if (listeners) {
       for (const listener of listeners) {
@@ -568,6 +607,11 @@ export class MeridianStore {
           console.error('[Meridian Store] Change listener error:', e);
         }
       }
+    }
+
+    // Broadcast local changes to other tabs
+    if (!isRemote && this.config.onLocalChange) {
+      this.config.onLocalChange(collection, docId);
     }
   }
 

@@ -139,6 +139,11 @@ export class WsHub {
         return;
       }
 
+      // Handle pong
+      if (raw === 'pong') {
+        return; // lastActivity is already updated above
+      }
+
       try {
         const msg: ClientMessage = JSON.parse(raw);
         await this.handleClientMessage(clientId, msg, client);
@@ -282,10 +287,15 @@ export class WsHub {
 
   private startHeartbeat(): void {
     this.heartbeatInterval = setInterval(() => {
+      const now = Date.now();
       for (const [id, client] of this.clients) {
-        if (client.ws.readyState !== WebSocket.OPEN) {
+        if (client.ws.readyState !== WebSocket.OPEN || now - client.lastActivity > HEARTBEAT_INTERVAL * 2) {
+          this.log(`⚠️ Disconnecting inactive client: ${id}`);
+          client.ws.terminate();
           this.clients.delete(id);
           this.config.onDisconnect?.(id);
+        } else {
+          client.ws.send('ping');
         }
       }
     }, HEARTBEAT_INTERVAL);
