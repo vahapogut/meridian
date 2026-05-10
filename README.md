@@ -36,7 +36,7 @@ No offline queue implementation.
 No cache invalidation headaches.
 
 <p align="center">
-  <img src="./assets/demo-ui.png" alt="Meridian Glassmorphism UI" width="800" />
+  <img src="./assets/demo-session.webp" alt="Meridian Glassmorphism UI in action" width="800" />
 </p>
 
 ## The Meridian DX
