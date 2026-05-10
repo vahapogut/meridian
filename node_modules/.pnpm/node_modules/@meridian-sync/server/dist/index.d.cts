@@ -220,10 +220,12 @@ declare class PgStore {
     /**
      * Apply CRDT operations from a client.
      * Performs field-level LWW merge with existing data.
-     *
-     * @returns Array of server changes with assigned sequence numbers
+     * @returns Array of server changes with assigned sequence numbers and any conflicts
      */
-    applyOperations(ops: CRDTOperation[]): Promise<ServerChange[]>;
+    applyOperations(ops: CRDTOperation[]): Promise<{
+        changes: ServerChange[];
+        conflicts: ConflictRecord[];
+    }>;
     /**
      * Get all changes since a given sequence number.
      * Used for pull protocol.

@@ -56,9 +56,34 @@ export class MergeEngine {
 
     try {
       // Apply to PostgreSQL (with CRDT merge)
-      const changes = await this.config.pgStore.applyOperations(ops);
+      const { changes, conflicts } = await this.config.pgStore.applyOperations(ops);
 
       if (changes.length === 0) return;
+
+      // Log conflicts
+      for (const conflict of conflicts) {
+        // Find which op this conflict belongs to in order to extract collection and docId
+        const op = ops.find(o => o.field === conflict.field && 
+          (o.value === conflict.winnerValue || o.value === conflict.loserValue));
+        
+        if (op) {
+          const conflictRecord = {
+            ...conflict,
+            collection: op.collection,
+            docId: op.docId,
+            timestamp: Date.now()
+          };
+          
+          this.conflictLog.push(conflictRecord);
+          if (this.conflictLog.length > this.maxConflictLog) {
+            this.conflictLog.shift();
+          }
+
+          if (this.config.onConflict) {
+            this.config.onConflict(conflictRecord);
+          }
+        }
+      }
 
       // Send ack to the pushing client
       const lastSeq = Math.max(...changes.map(c => c.seq));

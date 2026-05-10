@@ -252,7 +252,9 @@ var MeridianStore = class {
       grouped.get(key).push(op);
     }
     for (const [key, docOps] of grouped) {
-      const [collection, docId] = key.split(":");
+      const firstColon = key.indexOf(":");
+      const collection = key.slice(0, firstColon);
+      const docId = key.slice(firstColon + 1);
       const remoteMap = {};
       for (const op of docOps) {
         remoteMap[op.field] = {

@@ -350,7 +350,9 @@ export class MeridianStore {
     }
 
     for (const [key, docOps] of grouped) {
-      const [collection, docId] = key.split(':');
+      const firstColon = key.indexOf(':');
+      const collection = key.slice(0, firstColon);
+      const docId = key.slice(firstColon + 1);
 
       // Build remote LWW-Map from ops
       const remoteMap: LWWMap = {};

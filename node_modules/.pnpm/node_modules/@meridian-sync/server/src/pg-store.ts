@@ -25,6 +25,7 @@ import {
   getLatestHLC,
   isDeleted,
   DELETED_FIELD,
+  ConflictRecord,
 } from '@meridian-sync/shared';
 
 const { Pool } = pg;
@@ -173,12 +174,12 @@ export class PgStore {
   /**
    * Apply CRDT operations from a client.
    * Performs field-level LWW merge with existing data.
-   *
-   * @returns Array of server changes with assigned sequence numbers
+   * @returns Array of server changes with assigned sequence numbers and any conflicts
    */
-  async applyOperations(ops: CRDTOperation[]): Promise<ServerChange[]> {
+  async applyOperations(ops: CRDTOperation[]): Promise<{ changes: ServerChange[]; conflicts: ConflictRecord[] }> {
     const client = await this.pool.connect();
     const changes: ServerChange[] = [];
+    const allConflicts: ConflictRecord[] = [];
 
     try {
       await client.query('BEGIN');
@@ -223,8 +224,12 @@ export class PgStore {
           const existingMap = reconstructLWWMap(row, existingMeta);
 
           // Merge
-          const { merged } = mergeLWWMaps(existingMap, remoteMap);
+          const { merged, conflicts } = mergeLWWMaps(existingMap, remoteMap);
           finalMap = merged;
+          
+          if (conflicts.length > 0) {
+            allConflicts.push(...conflicts);
+          }
         } else {
           finalMap = remoteMap;
         }
@@ -330,7 +335,7 @@ export class PgStore {
       client.release();
     }
 
-    return changes;
+    return { changes, conflicts: allConflicts };
   }
 
   /**

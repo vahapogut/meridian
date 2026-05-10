@@ -143,12 +143,12 @@ var PgStore = class {
   /**
    * Apply CRDT operations from a client.
    * Performs field-level LWW merge with existing data.
-   *
-   * @returns Array of server changes with assigned sequence numbers
+   * @returns Array of server changes with assigned sequence numbers and any conflicts
    */
   async applyOperations(ops) {
     const client = await this.pool.connect();
     const changes = [];
+    const allConflicts = [];
     try {
       await client.query("BEGIN");
       const grouped = /* @__PURE__ */ new Map();
@@ -179,8 +179,11 @@ var PgStore = class {
           const row = existing.rows[0];
           const existingMeta = row._meridian_meta || {};
           const existingMap = (0, import_shared.reconstructLWWMap)(row, existingMeta);
-          const { merged } = (0, import_shared.mergeLWWMaps)(existingMap, remoteMap);
+          const { merged, conflicts } = (0, import_shared.mergeLWWMaps)(existingMap, remoteMap);
           finalMap = merged;
+          if (conflicts.length > 0) {
+            allConflicts.push(...conflicts);
+          }
         } else {
           finalMap = remoteMap;
         }
@@ -260,7 +263,7 @@ var PgStore = class {
     } finally {
       client.release();
     }
-    return changes;
+    return { changes, conflicts: allConflicts };
   }
   /**
    * Get all changes since a given sequence number.
@@ -636,8 +639,26 @@ var MergeEngine = class {
     if (ops.length === 0) return;
     this.log(`\u2B07\uFE0F Processing ${ops.length} ops from ${clientId}`);
     try {
-      const changes = await this.config.pgStore.applyOperations(ops);
+      const { changes, conflicts } = await this.config.pgStore.applyOperations(ops);
       if (changes.length === 0) return;
+      for (const conflict of conflicts) {
+        const op = ops.find((o) => o.field === conflict.field && (o.value === conflict.winnerValue || o.value === conflict.loserValue));
+        if (op) {
+          const conflictRecord = {
+            ...conflict,
+            collection: op.collection,
+            docId: op.docId,
+            timestamp: Date.now()
+          };
+          this.conflictLog.push(conflictRecord);
+          if (this.conflictLog.length > this.maxConflictLog) {
+            this.conflictLog.shift();
+          }
+          if (this.config.onConflict) {
+            this.config.onConflict(conflictRecord);
+          }
+        }
+      }
       const lastSeq = Math.max(...changes.map((c) => c.seq));
       const opIds = ops.map((op) => op.id);
       this.config.wsHub.sendTo(client, {
