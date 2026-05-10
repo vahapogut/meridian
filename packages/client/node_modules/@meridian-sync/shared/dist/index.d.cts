@@ -319,13 +319,17 @@ interface AuthExpiringMessage {
 interface AuthExpiredMessage {
     type: 'auth-expired';
 }
+/** Auth successful */
+interface AuthAckMessage {
+    type: 'auth-ack';
+}
 /** General error */
 interface ErrorMessage {
     type: 'error';
     code: string;
     message: string;
 }
-type ServerMessage = ChangesMessage | AckMessage | RejectMessage | PresenceBroadcastMessage | CompactionMessage | FullSyncRequiredMessage | AuthExpiringMessage | AuthExpiredMessage | ErrorMessage;
+type ServerMessage = ChangesMessage | AckMessage | RejectMessage | PresenceBroadcastMessage | CompactionMessage | FullSyncRequiredMessage | AuthExpiringMessage | AuthExpiredMessage | AuthAckMessage | ErrorMessage;
 type RejectCode = 'VALIDATION' | 'AUTH' | 'SCHEMA_MISMATCH' | 'CONFLICT' | 'RATE_LIMIT';
 type ConnectionState = 'disconnected' | 'connecting' | 'authenticating' | 'connected' | 'syncing' | 'error';
 /** Pending operation stored in IndexedDB until acknowledged by server */

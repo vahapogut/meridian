@@ -89,31 +89,62 @@ export class PgStore {
   private async createTable(collection: string, fields: CollectionSchema): Promise<void> {
     const table = this.tableName(collection);
 
-    // Build column definitions
-    const columns: string[] = ['id TEXT PRIMARY KEY'];
-
-    for (const [name, def] of Object.entries(fields)) {
-      if (name === 'id') continue;
-      const sqlType = fieldTypeToSQL(def.type);
-      columns.push(`${name} ${sqlType}`);
-    }
-
-    // Add Meridian system columns
-    columns.push(`_meridian_meta JSONB DEFAULT '{}'::jsonb`);
-    columns.push(`_meridian_seq BIGINT DEFAULT nextval('meridian_seq')`);
-    columns.push(`_meridian_deleted BOOLEAN DEFAULT false`);
-    columns.push(`_meridian_updated_at TEXT`);
-
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS ${table} (
-        ${columns.join(',\n        ')}
+    // 1. Check if table exists
+    const tableExistsResult = await this.pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
       );
-    `);
+    `, [table]);
 
-    // Create index on seq for efficient pull queries
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_${table}_seq ON ${table}(_meridian_seq);
-    `);
+    const tableExists = tableExistsResult.rows[0].exists;
+
+    if (!tableExists) {
+      // Build column definitions
+      const columns: string[] = ['id TEXT PRIMARY KEY'];
+
+      for (const [name, def] of Object.entries(fields)) {
+        if (name === 'id') continue;
+        const sqlType = fieldTypeToSQL(def.type);
+        columns.push(`${name} ${sqlType}`);
+      }
+
+      // Add Meridian system columns
+      columns.push(`_meridian_meta JSONB DEFAULT '{}'::jsonb`);
+      columns.push(`_meridian_seq BIGINT DEFAULT nextval('meridian_seq')`);
+      columns.push(`_meridian_deleted BOOLEAN DEFAULT false`);
+      columns.push(`_meridian_updated_at TEXT`);
+
+      await this.pool.query(`
+        CREATE TABLE ${table} (
+          ${columns.join(',\n          ')}
+        );
+      `);
+
+      // Create index on seq for efficient pull queries
+      await this.pool.query(`
+        CREATE INDEX idx_${table}_seq ON ${table}(_meridian_seq);
+      `);
+    } else {
+      // 2. Additive Migrations: check for missing columns
+      const colsResult = await this.pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = $1
+      `, [table]);
+
+      const existingColumns = new Set(colsResult.rows.map(r => r.column_name));
+
+      for (const [name, def] of Object.entries(fields)) {
+        if (name === 'id' || existingColumns.has(name)) continue;
+        
+        // Add missing column
+        const sqlType = fieldTypeToSQL(def.type);
+        await this.pool.query(`
+          ALTER TABLE ${table} ADD COLUMN ${name} ${sqlType};
+        `);
+      }
+    }
 
     // Create NOTIFY trigger
     await this.pool.query(`
@@ -161,7 +192,9 @@ export class PgStore {
       }
 
       for (const [key, docOps] of grouped) {
-        const [collection, docId] = key.split(':');
+        const firstColon = key.indexOf(':');
+        const collection = key.slice(0, firstColon);
+        const docId = key.slice(firstColon + 1);
         const table = this.tableName(collection);
 
         // Get existing row

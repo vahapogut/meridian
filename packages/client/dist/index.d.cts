@@ -1,4 +1,4 @@
-import { SchemaDefinition, LWWMap, PendingOp, CRDTOperation, HLC, ConflictRecord, ConnectionState } from '@meridian-sync/shared';
+import { SchemaDefinition, LWWMap, PendingOp, CRDTOperation, HLC, ConflictRecord, ConnectionState, ClientMessage } from '@meridian-sync/shared';
 export { ConflictRecord, ConnectionState, PendingOp, SchemaDefinition, defineSchema, z } from '@meridian-sync/shared';
 
 /**
@@ -114,7 +114,7 @@ declare class MeridianStore {
      * Register a listener for document changes in a collection.
      */
     onCollectionChange(collection: string, listener: (docId: string) => void): () => void;
-    private notifyChange;
+    notifyChange(collection: string, docId: string): void;
     /**
      * Close the database connection.
      */
@@ -502,7 +502,7 @@ declare class SyncEngine {
     pullChanges(): Promise<void>;
     private handleOnline;
     private handleOffline;
-    private send;
+    send(msg: ClientMessage): void;
     private setState;
     private log;
 }

@@ -141,6 +141,11 @@ export interface AuthExpiredMessage {
   type: 'auth-expired';
 }
 
+/** Auth successful */
+export interface AuthAckMessage {
+  type: 'auth-ack';
+}
+
 /** General error */
 export interface ErrorMessage {
   type: 'error';
@@ -157,6 +162,7 @@ export type ServerMessage =
   | FullSyncRequiredMessage
   | AuthExpiringMessage
   | AuthExpiredMessage
+  | AuthAckMessage
   | ErrorMessage;
 
 // ─── Error Codes ─────────────────────────────────────────────────────────────

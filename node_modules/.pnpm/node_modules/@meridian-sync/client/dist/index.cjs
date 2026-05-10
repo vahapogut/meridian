@@ -189,8 +189,9 @@ var MeridianStore = class {
     }
     const deleteMap = (0, import_shared.createLWWMap)({ [import_shared.DELETED_FIELD]: true }, hlc, nodeId);
     const { merged } = (0, import_shared.mergeLWWMaps)(existingMeta, deleteMap);
-    const tx = db.transaction([META_STORE, PENDING_STORE], "readwrite");
+    const tx = db.transaction([collection, META_STORE, PENDING_STORE], "readwrite");
     await tx.objectStore(META_STORE).put(merged, `${collection}:${docId}`);
+    await tx.objectStore(collection).delete(docId);
     const pendingOp = {
       id: `${docId}-${import_shared.DELETED_FIELD}-${Date.now()}`,
       op: {
@@ -223,8 +224,6 @@ var MeridianStore = class {
     const results = [];
     for (const doc of allDocs) {
       const docId = doc.id;
-      const meta = await this.getMeta(collection, docId);
-      if (meta && (0, import_shared.isDeleted)(meta)) continue;
       if (filter) {
         let matches = true;
         for (const [key, value] of Object.entries(filter)) {
@@ -523,10 +522,11 @@ var SyncEngine = class {
             token,
             schemaVersion: this.config.schemaVersion
           });
+        } else {
+          this.setState("connected");
+          await this.config.store.resetPendingStatus();
+          await this.sync();
         }
-        this.setState("connected");
-        await this.config.store.resetPendingStatus();
-        await this.sync();
       };
       this.ws.onmessage = (event) => {
         try {
@@ -611,6 +611,12 @@ var SyncEngine = class {
       case "auth-expired":
         this.log("\u{1F512} Auth expired \u2014 disconnecting");
         this.ws?.close();
+        break;
+      case "auth-ack":
+        this.log("\u{1F513} Auth successful");
+        this.setState("connected");
+        await this.config.store.resetPendingStatus();
+        await this.sync();
         break;
       case "presence":
         break;
@@ -1189,12 +1195,15 @@ function createClient(config) {
       syncEngine.stop();
     },
     onRemoteStoreChange: (collection, docId) => {
-      store.queryDocs(collection).then(() => {
-      });
+      store.notifyChange(collection, docId);
     }
   });
   presence.setSendFunction((data) => {
     if (syncEngine.isConnected) {
+      syncEngine.send({
+        type: "presence",
+        data
+      });
     }
   });
   const collections = {};

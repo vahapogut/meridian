@@ -7,7 +7,7 @@ var HLC = class {
   _nodeId;
   constructor(nodeId, initialTime) {
     this._nodeId = nodeId;
-    this._wallTime = initialTime ?? Date.now();
+    this._wallTime = initialTime ?? 0;
     this._counter = 0;
   }
   /** Current node ID */

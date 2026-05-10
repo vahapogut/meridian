@@ -79,24 +79,47 @@ var PgStore = class {
    */
   async createTable(collection, fields) {
     const table = this.tableName(collection);
-    const columns = ["id TEXT PRIMARY KEY"];
-    for (const [name, def] of Object.entries(fields)) {
-      if (name === "id") continue;
-      const sqlType = (0, import_shared.fieldTypeToSQL)(def.type);
-      columns.push(`${name} ${sqlType}`);
-    }
-    columns.push(`_meridian_meta JSONB DEFAULT '{}'::jsonb`);
-    columns.push(`_meridian_seq BIGINT DEFAULT nextval('meridian_seq')`);
-    columns.push(`_meridian_deleted BOOLEAN DEFAULT false`);
-    columns.push(`_meridian_updated_at TEXT`);
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS ${table} (
-        ${columns.join(",\n        ")}
+    const tableExistsResult = await this.pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = $1
       );
-    `);
-    await this.pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_${table}_seq ON ${table}(_meridian_seq);
-    `);
+    `, [table]);
+    const tableExists = tableExistsResult.rows[0].exists;
+    if (!tableExists) {
+      const columns = ["id TEXT PRIMARY KEY"];
+      for (const [name, def] of Object.entries(fields)) {
+        if (name === "id") continue;
+        const sqlType = (0, import_shared.fieldTypeToSQL)(def.type);
+        columns.push(`${name} ${sqlType}`);
+      }
+      columns.push(`_meridian_meta JSONB DEFAULT '{}'::jsonb`);
+      columns.push(`_meridian_seq BIGINT DEFAULT nextval('meridian_seq')`);
+      columns.push(`_meridian_deleted BOOLEAN DEFAULT false`);
+      columns.push(`_meridian_updated_at TEXT`);
+      await this.pool.query(`
+        CREATE TABLE ${table} (
+          ${columns.join(",\n          ")}
+        );
+      `);
+      await this.pool.query(`
+        CREATE INDEX idx_${table}_seq ON ${table}(_meridian_seq);
+      `);
+    } else {
+      const colsResult = await this.pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = $1
+      `, [table]);
+      const existingColumns = new Set(colsResult.rows.map((r) => r.column_name));
+      for (const [name, def] of Object.entries(fields)) {
+        if (name === "id" || existingColumns.has(name)) continue;
+        const sqlType = (0, import_shared.fieldTypeToSQL)(def.type);
+        await this.pool.query(`
+          ALTER TABLE ${table} ADD COLUMN ${name} ${sqlType};
+        `);
+      }
+    }
     await this.pool.query(`
       CREATE OR REPLACE FUNCTION meridian_notify_${table}() RETURNS trigger AS $$
       BEGIN
@@ -135,7 +158,9 @@ var PgStore = class {
         grouped.get(key).push(op);
       }
       for (const [key, docOps] of grouped) {
-        const [collection, docId] = key.split(":");
+        const firstColon = key.indexOf(":");
+        const collection = key.slice(0, firstColon);
+        const docId = key.slice(firstColon + 1);
         const table = this.tableName(collection);
         const existing = await client.query(
           `SELECT * FROM ${table} WHERE id = $1 FOR UPDATE`,
@@ -470,6 +495,7 @@ var WsHub = class {
           client.namespace = result.namespace ?? null;
           client.authExpiresAt = result.expiresAt ?? null;
           this.log(`\u{1F511} Client ${clientId} authenticated as ${result.userId}`);
+          this.sendTo(client, { type: "auth-ack" });
         } catch (e) {
           this.sendTo(client, {
             type: "error",

@@ -177,6 +177,7 @@ export class WsHub {
           client.authExpiresAt = result.expiresAt ?? null;
 
           this.log(`🔑 Client ${clientId} authenticated as ${result.userId}`);
+          this.sendTo(client, { type: 'auth-ack' });
         } catch (e) {
           this.sendTo(client, {
             type: 'error',

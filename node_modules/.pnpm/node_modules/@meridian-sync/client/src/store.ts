@@ -266,8 +266,9 @@ export class MeridianStore {
     const { merged } = mergeLWWMaps(existingMeta, deleteMap);
 
     // Write
-    const tx = db.transaction([META_STORE, PENDING_STORE], 'readwrite');
+    const tx = db.transaction([collection, META_STORE, PENDING_STORE], 'readwrite');
     await tx.objectStore(META_STORE).put(merged, `${collection}:${docId}`);
+    await tx.objectStore(collection).delete(docId); // Remove from primary store
 
     const pendingOp: PendingOp = {
       id: `${docId}-${DELETED_FIELD}-${Date.now()}`,
@@ -310,9 +311,9 @@ export class MeridianStore {
     for (const doc of allDocs) {
       const docId = doc.id as string;
 
-      // Check soft-delete
-      const meta = await this.getMeta(collection, docId);
-      if (meta && isDeleted(meta)) continue;
+      // We no longer check isDeleted(meta) here because deleteDoc and 
+      // applyRemoteChanges both remove tombstoned documents directly from the 
+      // collection store. This eliminates the O(N) getMeta transactions!
 
       // Apply filter
       if (filter) {
@@ -555,7 +556,7 @@ export class MeridianStore {
     };
   }
 
-  private notifyChange(collection: string, docId: string): void {
+  public notifyChange(collection: string, docId: string): void {
     const listeners = this.changeListeners.get(collection);
     if (listeners) {
       for (const listener of listeners) {

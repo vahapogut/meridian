@@ -154,15 +154,12 @@ export class SyncEngine {
             token,
             schemaVersion: this.config.schemaVersion,
           });
+          // Wait for auth-ack before syncing
+        } else {
+          this.setState('connected');
+          await this.config.store.resetPendingStatus();
+          await this.sync();
         }
-
-        this.setState('connected');
-
-        // Reset any in-flight ops back to pending
-        await this.config.store.resetPendingStatus();
-
-        // Initial sync
-        await this.sync();
       };
 
       this.ws.onmessage = (event) => {
@@ -268,6 +265,13 @@ export class SyncEngine {
       case 'auth-expired':
         this.log('🔒 Auth expired — disconnecting');
         this.ws?.close();
+        break;
+
+      case 'auth-ack':
+        this.log('🔓 Auth successful');
+        this.setState('connected');
+        await this.config.store.resetPendingStatus();
+        await this.sync();
         break;
 
       case 'presence':
@@ -406,7 +410,7 @@ export class SyncEngine {
 
   // ─── Utilities ──────────────────────────────────────────────────────────────
 
-  private send(msg: ClientMessage): void {
+  public send(msg: ClientMessage): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(msg));
     }

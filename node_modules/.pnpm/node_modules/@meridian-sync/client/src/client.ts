@@ -186,18 +186,18 @@ export function createClient(config: MeridianClientConfig): MeridianClient {
     },
     onRemoteStoreChange: (collection, docId) => {
       // Trigger reactive query re-evaluation for this collection
-      // The store's internal change listeners will handle this
-      store.queryDocs(collection).then(() => {
-        // Force re-evaluation
-      });
+      // We directly notify the store's change listeners
+      store.notifyChange(collection, docId);
     },
   });
 
   // Wire presence send function to sync engine
   presence.setSendFunction((data) => {
-    // Will be sent via the sync engine's WebSocket
     if (syncEngine.isConnected) {
-      // This gets handled by the sync engine
+      syncEngine.send({
+        type: 'presence',
+        data,
+      });
     }
   });
 
