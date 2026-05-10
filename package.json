@@ -10,5 +10,5 @@
     "lint": "tsc --noEmit"
   },
   "keywords": ["crdt", "sync", "local-first", "postgresql", "indexeddb", "websocket", "offline-first"],
-  "license": "MIT"
+  "license": "Apache-2.0"
 }

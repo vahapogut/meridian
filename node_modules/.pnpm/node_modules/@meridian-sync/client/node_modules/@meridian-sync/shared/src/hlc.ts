@@ -40,7 +40,7 @@ export class HLC {
 
   constructor(nodeId: string, initialTime?: number) {
     this._nodeId = nodeId;
-    this._wallTime = initialTime ?? Date.now();
+    this._wallTime = initialTime ?? 0;
     this._counter = 0;
   }
 
