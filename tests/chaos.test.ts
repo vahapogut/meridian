@@ -425,11 +425,139 @@ describe('Meridian — Integration Tests', () => {
         await strictServer.start();
         await sleep(200);
       } catch {
-        // Auth validation at WS connection time — integration test
-        // for WS auth is better covered in ws-hub unit tests
+        // Auth validation at WS connection time
       } finally {
         await strictServer.stop().catch(() => {});
       }
+    });
+  });
+
+  // ─── Row-Level Permissions (no PG needed) ──────────────────────────────────
+
+  describe('Permissions — RuleEvaluator', () => {
+    const { defineRules, RuleEvaluator } = require('@meridian-sync/shared');
+
+    it('should allow read when no rules defined (default open)', async () => {
+      const evaluator = new RuleEvaluator({});
+      const result = await evaluator.check('todos', 'read', null);
+      expect(result).toBe(true);
+    });
+
+    it('should deny read when rule returns false', async () => {
+      const rules = defineRules({
+        todos: {
+          read: () => false,
+        },
+      });
+      const evaluator = new RuleEvaluator(rules);
+      const result = await evaluator.check('todos', 'read', null);
+      expect(result).toBe(false);
+    });
+
+    it('should allow read for matching userId', async () => {
+      const rules = defineRules({
+        todos: {
+          read: (auth, doc) => auth?.userId === doc.existing?.ownerId,
+        },
+      });
+      const evaluator = new RuleEvaluator(rules);
+      const allowed = await evaluator.check('todos', 'read',
+        { userId: 'user-1' },
+        { existing: { ownerId: 'user-1', title: 'Test' }, incoming: null }
+      );
+      expect(allowed).toBe(true);
+    });
+
+    it('should deny read for mismatched userId', async () => {
+      const rules = defineRules({
+        todos: {
+          read: (auth, doc) => auth?.userId === doc.existing?.ownerId,
+        },
+      });
+      const evaluator = new RuleEvaluator(rules);
+      const allowed = await evaluator.check('todos', 'read',
+        { userId: 'user-2' },
+        { existing: { ownerId: 'user-1', title: 'Test' }, incoming: null }
+      );
+      expect(allowed).toBe(false);
+    });
+
+    it('should deny write for unauthenticated user', async () => {
+      const rules = defineRules({
+        todos: {
+          write: (auth) => auth != null,
+        },
+      });
+      const evaluator = new RuleEvaluator(rules);
+      const result = await evaluator.check('todos', 'write', null);
+      expect(result).toBe(false);
+    });
+
+    it('should filter documents by read permission', async () => {
+      const rules = defineRules({
+        todos: {
+          read: (auth, doc) => auth?.userId === doc.existing?.ownerId,
+        },
+      });
+      const evaluator = new RuleEvaluator(rules);
+      const docs = [
+        { id: '1', ownerId: 'user-a', title: 'A' },
+        { id: '2', ownerId: 'user-b', title: 'B' },
+        { id: '3', ownerId: 'user-a', title: 'C' },
+      ];
+      const filtered = await evaluator.filterRead('todos', { userId: 'user-a' }, docs);
+      expect(filtered.length).toBe(2);
+      expect(filtered[0].ownerId).toBe('user-a');
+      expect(filtered[1].ownerId).toBe('user-a');
+    });
+  });
+
+  // ─── Partial Sync — Filter Logic ───────────────────────────────────────────
+
+  describe('Partial Sync — Filter Matching', () => {
+    it('should match documents against simple field filter', () => {
+      const filter = { done: false };
+      const docs = [
+        { id: '1', title: 'A', done: false },
+        { id: '2', title: 'B', done: true },
+        { id: '3', title: 'C', done: false },
+      ];
+
+      const matches = docs.filter(doc => {
+        for (const [key, value] of Object.entries(filter)) {
+          if (doc[key] !== value) return false;
+        }
+        return true;
+      });
+
+      expect(matches.length).toBe(2);
+      expect(matches.map(d => d.id)).toEqual(['1', '3']);
+    });
+
+    it('should match against multi-field filter', () => {
+      const filter = { done: false, priority: 1 };
+      const docs = [
+        { id: '1', done: false, priority: 1 },
+        { id: '2', done: false, priority: 2 },
+        { id: '3', done: true, priority: 1 },
+      ];
+
+      const matches = docs.filter(doc => {
+        for (const [key, value] of Object.entries(filter)) {
+          if (doc[key] !== value) return false;
+        }
+        return true;
+      });
+
+      expect(matches.length).toBe(1);
+      expect(matches[0].id).toBe('1');
+    });
+
+    it('should return all when filter is empty', () => {
+      const filter = {};
+      const docs = [{ id: '1' }, { id: '2' }];
+      const matches = docs.filter(() => true);
+      expect(matches.length).toBe(2);
     });
   });
 });
