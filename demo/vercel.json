@@ -1,16 +1,5 @@
 {
   "buildCommand": "cd .. && pnpm install && pnpm build && cd demo && pnpm build",
   "outputDirectory": "dist",
-  "installCommand": "pnpm install",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/ws",
-      "destination": "http://localhost:3000"
-    }
-  ],
-  "env": {
-    "DATABASE_URL": "@meridian-database-url",
-    "PORT": "3000"
-  }
+  "installCommand": "pnpm install"
 }
