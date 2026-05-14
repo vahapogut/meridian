@@ -7,9 +7,10 @@
  * Two modes:
  * 1. NOTIFY mode (default) — Fast, simple, uses pg_notify()
  *    triggers. Good for up to ~10K concurrent clients.
- * 2. WAL mode — Uses PostgreSQL logical replication (pgoutput)
- *    for massive scale (100K+ clients). Requires
- *    `wal_level = logical` in postgresql.conf.
+ * 2. WAL mode — Uses wal2json logical decoding plugin for
+ *    massive scale (100K+ clients). Requires:
+ *    - `wal_level = logical` in postgresql.conf
+ *    - `CREATE EXTENSION wal2json;` (if not already installed)
  */
 
 import { Client } from 'pg';
@@ -145,6 +146,9 @@ class WALStream {
     const pubName = this.config.publication || 'meridian_pub';
     const slotName = this.config.slot || 'meridian_slot';
 
+    // Ensure wal2json extension is available
+    await this.client.query(`CREATE EXTENSION IF NOT EXISTS wal2json`);
+
     // Create publication for all tables
     await this.client.query(`
       DO $$
@@ -155,14 +159,15 @@ class WALStream {
       END $$;
     `);
 
-    // Create replication slot if not exists
+    // Create replication slot if not exists (uses wal2json for JSON output)
     const { rows: slotRows } = await this.client.query(
       `SELECT slot_name FROM pg_replication_slots WHERE slot_name = $1`,
       [slotName]
     );
     if (slotRows.length === 0) {
+      // Requires: CREATE EXTENSION IF NOT EXISTS wal2json;
       await this.client.query(
-        `SELECT pg_create_logical_replication_slot($1, 'pgoutput')`,
+        `SELECT pg_create_logical_replication_slot($1, 'wal2json')`,
         [slotName]
       );
     }
@@ -201,24 +206,40 @@ class WALStream {
     }
   }
 
-  /** Parse pgoutput binary format into a WALChange */
+  /** Parse wal2json JSON output into a WALChange */
   private parsePGOutput(data: string): { collection: string; docId: string; operation: 'INSERT' | 'UPDATE' | 'DELETE'; lsn?: string; seq?: number } | null {
     try {
-      // pgoutput sends changes as text in the slot_get_changes output
-      // Format varies; we parse the JSON-like representation
+      // wal2json format: { "change": [{ "kind": "insert"|"update"|"delete", "table": "...", ... }] }
       const parsed = JSON.parse(data);
-      if (parsed.change && parsed.change.length > 0) {
-        const change = parsed.change[0];
-        return {
-          collection: change.table || change.schema,
-          docId: change.oldkeys?.keyvalues?.id || change.columnvalues?.[0],
-          operation: change.kind === 'delete' ? 'DELETE' : change.kind === 'update' ? 'UPDATE' : 'INSERT',
-          lsn: parsed.lsn,
-        };
+      if (!parsed.change || parsed.change.length === 0) return null;
+
+      const change = parsed.change[0];
+      const table = change.table;
+      const kind = change.kind as string;
+
+      // Extract docId: first column value (typically 'id') from columnvalues or oldkeys
+      let docId: string | undefined;
+      if (change.columnvalues && change.columnnames) {
+        const idIndex = change.columnnames.indexOf('id');
+        docId = idIndex >= 0 ? String(change.columnvalues[idIndex]) : String(change.columnvalues[0]);
+      } else if (change.oldkeys?.keyvalues) {
+        const idIndex = change.oldkeys.keynames.indexOf('id');
+        docId = idIndex >= 0 ? String(change.oldkeys.keyvalues[idIndex]) : String(change.oldkeys.keyvalues[0]);
       }
-      return null;
+
+      if (!docId || !table) return null;
+
+      const operation = kind === 'delete' ? 'DELETE' : kind === 'update' ? 'UPDATE' : 'INSERT';
+
+      // Extract seq from _meridian_seq if present
+      let seq: number | undefined;
+      if (change.columnnames && change.columnvalues) {
+        const seqIndex = change.columnnames.indexOf('_meridian_seq');
+        if (seqIndex >= 0) seq = parseInt(change.columnvalues[seqIndex], 10);
+      }
+
+      return { collection: table, docId, operation, seq };
     } catch {
-      // Not JSON — try extracting table/id from raw pgoutput data
       return null;
     }
   }
