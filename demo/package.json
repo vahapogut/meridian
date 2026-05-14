@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "tsx watch server.ts",
-    "dev:client": "vite"
+    "dev:client": "vite",
+    "build": "vite build"
   },
   "dependencies": {
     "meridian-client": "workspace:*",
