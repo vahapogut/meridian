@@ -24,6 +24,8 @@ import {
   getLatestHLC,
   DELETED_FIELD,
   getDefaults,
+  encryptFields,
+  decryptFields,
 } from '@meridian-sync/shared';
 
 const DB_NAME_PREFIX = 'meridian';
@@ -53,9 +55,18 @@ function wrapIDBError(err: unknown, operation: string): never {
   );
 }
 
+export interface EncryptionConfig {
+  /** AES-256-GCM CryptoKey for field-level encryption */
+  key: CryptoKey;
+  /** Fields to encrypt before IndexedDB storage */
+  fields: string[];
+}
+
 export interface StoreConfig {
   /** Database name (derived from server URL or custom) */
   dbName: string;
+  /** Optional E2E encryption config */
+  encryption?: EncryptionConfig;
   /** Schema definition */
   schema: SchemaDefinition;
   /** Node ID for this client */
@@ -86,6 +97,20 @@ export class MeridianStore {
 
   constructor(config: StoreConfig) {
     this.config = config;
+  }
+
+  /** Encrypt sensitive fields before IndexedDB storage */
+  private async encryptDoc(doc: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const enc = this.config.encryption;
+    if (!enc || enc.fields.length === 0) return doc;
+    return encryptFields(doc, enc.key, enc.fields);
+  }
+
+  /** Decrypt sensitive fields after IndexedDB read */
+  private async decryptDoc(doc: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const enc = this.config.encryption;
+    if (!enc || enc.fields.length === 0) return doc;
+    return decryptFields(doc, enc.key, enc.fields);
   }
 
   /**
@@ -164,7 +189,7 @@ export class MeridianStore {
     const meta = await this.getMeta(collection, docId);
     if (meta && isDeleted(meta)) return null;
 
-    return doc;
+    return this.decryptDoc(doc);
   }
 
   /**
@@ -210,11 +235,14 @@ export class MeridianStore {
       }
     }
 
+    // Encrypt sensitive fields before IndexedDB storage
+    const docToStore = await this.encryptDoc(clonedDoc);
+
     // Get existing metadata for rollback
     const existingMeta = await this.getMeta(collection, docId);
 
-    // Create new CRDT map
-    const newMap = createLWWMap(clonedDoc, hlc, nodeId);
+    // Create new CRDT map (encrypted for storage, unencrypted for sync)
+    const newMap = createLWWMap(docToStore, hlc, nodeId);
 
     // Merge with existing if present
     let finalMap: LWWMap;
@@ -392,7 +420,7 @@ export class MeridianStore {
         if (!matches) continue;
       }
 
-      results.push(doc);
+      results.push(await this.decryptDoc(doc));
     }
 
     return results;
@@ -444,8 +472,10 @@ export class MeridianStore {
       const tx = db.transaction([collection, META_STORE], 'readwrite');
 
       if (!isDeleted(finalMap)) {
-        const values = extractValues(finalMap);
+        let values = extractValues(finalMap);
         values.id = docId;
+        // Encrypt sensitive fields from server before IndexedDB storage
+        values = await this.encryptDoc(values);
         await tx.objectStore(collection).put(values);
       } else {
         // Remove from collection store if deleted

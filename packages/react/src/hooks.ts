@@ -68,7 +68,10 @@ export function useLiveQuery(
   options: LiveQueryOptions = {}
 ): Record<string, unknown>[] | undefined {
   const queryRef = useRef<Query<Record<string, unknown>[]>>();
-  const [data, setData] = useState<Record<string, unknown>[]>();
+  const [data, setData] = useState<Record<string, unknown[]>>();
+  // Destructure to primitive values for stable dependency comparison
+  const { where: _w, orderBy: _ob, limit: _lim } = options;
+  const depKey = `${_ob || ''}-${_lim || 0}-${Object.entries(_w || {}).sort().join(',')}`;
 
   useEffect(() => {
     const query = collection.live(options);
@@ -78,7 +81,7 @@ export function useLiveQuery(
       if (mounted) setData(result);
     });
     return () => { unsub(); mounted = false; };
-  }, [JSON.stringify(options)]);
+  }, [depKey]);
 
   return data;
 }

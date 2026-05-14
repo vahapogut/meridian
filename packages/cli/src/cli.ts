@@ -16,8 +16,9 @@
  */
 
 import { parseArgs } from 'node:util';
-import { createServer, type MeridianServerConfig } from '@meridian-sync/server';
-import { defineSchema, z, type SchemaDefinition } from '@meridian-sync/shared';
+import { createServer } from '@meridian-sync/server';
+import { defineSchema, z } from '@meridian-sync/shared';
+import { Client } from 'pg';
 
 const USAGE = `
 Meridian CLI — Manage your Meridian sync infrastructure
@@ -124,20 +125,50 @@ async function cmdInspect(args: string[]) {
       : { _placeholder: { id: z.string() } },
   });
 
-  const server = createServer({ port: 0, database: values.db, schema, debug: true });
+  const pg = new Client({ connectionString: values.db });
+  await pg.connect();
 
-  console.log(`Connecting to ${values.db}...`);
-  console.log('Collection:', values.collection || '(all)');
-  if (values['doc-id']) console.log('Document ID:', values['doc-id']);
+  try {
+    console.log(`Connected to ${values.db}`);
 
-  await server.start();
-  console.log('Connection successful.');
+    if (values.collection) {
+      // Inspect specific collection
+      const { rows } = await pg.query(
+        `SELECT * FROM "${values.collection}" ORDER BY _meridian_seq DESC LIMIT 50`
+      );
+      console.log(`\nCollection: ${values.collection} (${rows.length} rows)`);
+      console.log('─'.repeat(80));
 
-  // In a real implementation, we'd query pg-store directly here
-  const clientCount = server.getClientCount();
-  console.log(`Active WebSocket clients: ${clientCount}`);
-
-  await server.stop();
+      for (const row of rows) {
+        const meta = row._meridian_meta || {};
+        const deleted = row._meridian_deleted;
+        const seq = row._meridian_seq;
+        const flag = deleted ? '[DELETED]' : '[ACTIVE]';
+        console.log(`  ${flag} seq=${seq} id=${row.id}`);
+        if (meta && Object.keys(meta).length > 0) {
+          const fields = Object.keys(meta).filter(k => !k.startsWith('_')).slice(0, 5);
+          console.log(`    Fields: ${fields.join(', ')}`);
+        }
+      }
+    } else {
+      // List all tables with _meridian columns
+      const { rows: tables } = await pg.query(`
+        SELECT table_name
+        FROM information_schema.columns
+        WHERE column_name = '_meridian_seq'
+        ORDER BY table_name
+      `);
+      console.log('\nCollections with Meridian sync:');
+      for (const t of tables) {
+        const { rows: count } = await pg.query(
+          `SELECT count(*) as c FROM "${t.table_name}"`
+        );
+        console.log(`  ${t.table_name}: ${count[0].c} documents`);
+      }
+    }
+  } finally {
+    await pg.end();
+  }
 }
 
 // ─── replay ─────────────────────────────────────────────────────────────────
@@ -148,6 +179,7 @@ async function cmdReplay(args: string[]) {
     options: {
       db: { type: 'string' },
       since: { type: 'string' },
+      collection: { type: 'string' },
     },
   });
 
@@ -157,9 +189,45 @@ async function cmdReplay(args: string[]) {
   }
 
   const since = parseInt(values.since, 10);
-  console.log(`Replaying operations since seq ${since}...`);
-  console.log('(Connect to database and query _meridian_seq >', since, ')');
-  console.log('This would replay all operations in a recovery scenario.');
+  const pg = new Client({ connectionString: values.db });
+  await pg.connect();
+
+  try {
+    const tableFilter = values.collection
+      ? `AND table_name = '${values.collection}'`
+      : '';
+
+    // Find all rows with _meridian_seq > since across all sync tables
+    const { rows: tables } = await pg.query(`
+      SELECT table_name
+      FROM information_schema.columns
+      WHERE column_name = '_meridian_seq' ${tableFilter}
+      ORDER BY table_name
+    `);
+
+    let totalOps = 0;
+    for (const t of tables) {
+      const { rows } = await pg.query(
+        `SELECT id, _meridian_seq, _meridian_meta, _meridian_deleted
+         FROM "${t.table_name}"
+         WHERE _meridian_seq > $1
+         ORDER BY _meridian_seq ASC`,
+        [since]
+      );
+      if (rows.length > 0) {
+        console.log(`\n${t.table_name}: ${rows.length} operations`);
+        for (const row of rows) {
+          const op = row._meridian_deleted ? 'DELETE' : 'UPSERT';
+          console.log(`  seq=${row._meridian_seq} ${op} id=${row.id}`);
+        }
+        totalOps += rows.length;
+      }
+    }
+
+    console.log(`\nTotal: ${totalOps} operations since seq ${since}`);
+  } finally {
+    await pg.end();
+  }
 }
 
 // ─── status ─────────────────────────────────────────────────────────────────
