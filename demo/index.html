@@ -75,7 +75,8 @@
         <div class="stat">Syncs: <b id="stat-ops">0</b></div>
         <div class="stat">Conflicts: <b id="stat-conflicts">0</b></div>
         <div class="stat">Merge Latency: <b id="stat-latency">0ms</b></div>
-        <div class="stat" id="stat-conn" style="color:var(--green)">● Connected</div>
+        <div class="stat" id="stat-conn" style="color:var(--green)">● Local</div>
+        <div class="stat" style="color:var(--green)">Persistence: localStorage</div>
       </div>
       <div class="actions">
         <button onclick="simulateConflict()">Force Conflict</button>
@@ -158,6 +159,19 @@
 <script>
 const ENGINE = {
   state: {},
+  m: { ops: 0, conflicts: 0, latency: 0 },
+
+  persist() {
+    try { localStorage.setItem('meridian-demo', JSON.stringify({ state: this.state, m: this.m })); } catch {}
+  },
+  restore() {
+    try {
+      const raw = localStorage.getItem('meridian-demo');
+      if (raw) { const d = JSON.parse(raw); this.state = d.state || {}; this.m = d.m || { ops: 0, conflicts: 0, latency: 0 }; return true; }
+    } catch {}
+    return false;
+  },
+
   merge(field, value, hlc, node) {
     const current = this.state[field];
     const start = performance.now();
@@ -173,6 +187,7 @@ const ENGINE = {
       }
       this.m.ops++;
       this.m.latency = ms;
+      this.persist();
       return true;
     }
     return false;
@@ -184,13 +199,16 @@ const ENGINE = {
     div.innerHTML = msg;
     el.insertBefore(div, el.firstChild);
     while (el.children.length > 40) el.lastChild.remove();
-  },
-  m: { ops: 0, conflicts: 0, latency: 0 }
+  }
 };
 
-const BASE = Date.now();
 const INITIAL = { title: 'Q3 Roadmap', status: 'done', priority: 2, owner: 'system' };
-Object.entries(INITIAL).forEach(([k, v], i) => ENGINE.merge(k, v, BASE + i, 'server'));
+if (!ENGINE.restore()) {
+  Object.entries(INITIAL).forEach(([k, v], i) => ENGINE.merge(k, v, Date.now() + i, 'server'));
+  ENGINE.m = { ops: 0, conflicts: 0, latency: 0 };
+  ENGINE.persist();
+}
+ENGINE.log('[PERSIST] State loaded from localStorage. Refresh the page — data survives.', 'sync');
 
 const CLIENTS = {
   a: { node: 'alice-node', offline: false, hlc: 1000 },
