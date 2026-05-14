@@ -20,6 +20,8 @@
   <img src="https://img.shields.io/badge/tests-67_passed-brightgreen" alt="Tests: 48 passed">
   <img src="https://img.shields.io/badge/benchmarks-20M_ops%2Fs-blue" alt="Benchmarks">
   <img src="https://img.shields.io/badge/React-hooks-blue?logo=react" alt="React">
+  <img src="https://img.shields.io/badge/React_Native-mobile-blue?logo=react" alt="React Native">
+  <img src="https://img.shields.io/badge/SQLite-adapter-orange?logo=sqlite" alt="SQLite">
   <img src="https://img.shields.io/badge/E2E-encrypted-green" alt="E2E Encryption">
 </p>
 
@@ -107,6 +109,10 @@ Meridian solves this by abstracting the entire sync layer into a single, cohesiv
 * **E2E Encryption:** AES-256-GCM field-level encryption. IndexedDB at-rest + WebSocket in-transit. Server stores only ciphertext.
 * **CLI Tools:** `meridian migrate`, `inspect`, `replay`, `status`, `compact` — manage sync infrastructure from the command line.
 * **WAL Streaming:** PostgreSQL LISTEN/NOTIFY + logical replication for real-time change data capture at scale.
+* **Partial Sync:** Row-level `WHERE` filters on subscriptions — clients only sync matching data, not entire collections.
+* **Row-Level Permissions:** Server-side `RuleEvaluator` filters changes by auth context. Users only see authorized rows.
+* **SQLite Adapter:** Full `SQLiteStore` implementing the StorageAdapter interface — works with better-sqlite3, sql.js, and Turso.
+* **React Native SDK:** `@meridian-sync/react-native` — AsyncStorage-backed client with the same hooks API as the browser.
 
 ## Quick Start
 
@@ -233,11 +239,19 @@ Meridian is evolving to become the ultimate infra product for local-first develo
 - [x] **CLI Tools:** `meridian migrate`, `inspect`, `replay`, `status`, `compact`.
 - [x] **WAL Streaming:** PostgreSQL LISTEN/NOTIFY + logical replication polling consumer.
 
+### Done in v0.4.0
+- [x] **Partial Sync:** Row-level `WHERE` filters on subscriptions — clients only sync matching data.
+- [x] **Row-Level Permissions:** Server-side `RuleEvaluator` filters changes by auth context.
+- [x] **Custom Conflict Hooks:** `onConflict` callback on MergeEngine for custom merge logic.
+- [x] **Fine-Grained Reactivity:** `useQueryOptimized` — only changed documents trigger re-renders.
+- [x] **SQLite Adapter:** `SQLiteStore` with better-sqlite3, sql.js WASM, and Turso/libsql support.
+- [x] **React Native SDK:** `@meridian-sync/react-native` with AsyncStorage + same hooks API.
+
 ### Coming Next
-- [ ] **SQLite Adapter:** Full SQLite/Turso implementation of the StorageAdapter interface.
 - [ ] **Sync Compression:** Debouncing typing operations in the offline queue.
 - [ ] **MySQL Adapter:** MySQL implementation of the StorageAdapter interface.
 - [ ] **Vue/Svelte hooks:** Framework support beyond React.
+- [ ] **Flutter SDK:** Dart/Flutter client for cross-platform mobile.
 
 ## Performance
 

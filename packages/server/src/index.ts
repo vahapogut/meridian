@@ -11,6 +11,7 @@ export { MergeEngine, type MergeEngineConfig } from './merge.js';
 export { ServerPresenceManager } from './presence.js';
 export { CompactionManager, type CompactionConfig } from './compaction.js';
 export { createWALStream, type WALStreamConfig, type WALChange } from './wal-stream.js';
+export { SQLiteStore, type SQLiteStoreConfig, type SQLDriver, type SQLStatement } from './sqlite-store.js';
 
 // Re-export from shared for convenience
 export {
