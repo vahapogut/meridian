@@ -50,6 +50,10 @@ No offline queue implementation.
 No cache invalidation headaches.
 
 <p align="center">
+  <a href="https://meridiandb-demo.vercel.app">
+    <img src="./assets/demo-ui.png" alt="MeridianDB Multiplayer Sync Demo" width="800" />
+  </a>
+  <br/>
   <b>Live demo:</b> <a href="https://meridiandb-demo.vercel.app">meridiandb-demo.vercel.app</a> — open in two tabs to see real-time sync.
 </p>
 
