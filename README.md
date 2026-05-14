@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Local--First-Success?style=flat&color=10b981" alt="Local-First">
-  <img src="https://img.shields.io/badge/tests-67_passed-brightgreen" alt="Tests: 48 passed">
+  <img src="https://img.shields.io/badge/tests-76_passed-brightgreen" alt="Tests: 48 passed">
   <img src="https://img.shields.io/badge/benchmarks-20M_ops%2Fs-blue" alt="Benchmarks">
   <img src="https://img.shields.io/badge/React-hooks-blue?logo=react" alt="React">
   <img src="https://img.shields.io/badge/React_Native-mobile-blue?logo=react" alt="React Native">
@@ -269,7 +269,7 @@ Run locally: `npx tsx tests/bench.ts`
 
 ## Testing
 
-67 tests (48 unit + 19 integration) across all packages:
+76 tests (48 unit + 28 integration) across all packages:
 
 ```bash
 pnpm test
