@@ -95,6 +95,13 @@ export {
   type ConflictInfo,
 } from './storage.js';
 
+// Binary Codec — MessagePack-compatible encoder/decoder
+export {
+  encodeBinary,
+  decodeBinary,
+  estimateBinarySavings,
+} from './binary-codec.js';
+
 // Transport — Abstraction layer (WebSocket, WebRTC, TCP, Redis, etc.)
 export {
   WebSocketTransport,
