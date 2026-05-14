@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Multiplayer Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 2rem; margin-bottom: 8px; }
+  .subtitle { color: #94a3b8; margin-bottom: 32px; }
+  .clients { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .client { background: #1e293b; border-radius: 12px; padding: 24px; border: 2px solid #334155; }
+  .client.active { border-color: #3b82f6; }
+  .client-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .client-name { font-weight: 700; font-size: 1.1rem; }
+  .status { font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; background: #334155; }
+  .status.online { background: #065f46; color: #6ee7b7; }
+  .status.offline { background: #7f1d1d; color: #fca5a5; }
+  .status.syncing { background: #78350f; color: #fcd34d; }
+  .doc { background: #0f172a; border-radius: 8px; padding: 16px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
+  .field input { width: 100%; padding: 8px 12px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; color: #e2e8f0; font-size: 0.95rem; }
+  .field input:focus { outline: none; border-color: #3b82f6; }
+  .conflict-badge { background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .merge-log { grid-column: 1 / -1; background: #1e293b; border-radius: 12px; padding: 16px; max-height: 200px; overflow-y: auto; }
+  .merge-log h3 { margin-bottom: 8px; }
+  .log-entry { font-family: monospace; font-size: 0.85rem; padding: 4px 0; border-bottom: 1px solid #334155; }
+  .log-entry .winner { color: #6ee7b7; }
+  .log-entry .loser { color: #fca5a5; }
+  .actions { margin-top: 20px; display: flex; gap: 12px; }
+  button { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+  .btn-sync { background: #3b82f6; color: white; }
+  .btn-sync:hover { background: #2563eb; }
+  .btn-offline { background: #ef4444; color: white; }
+  .btn-reconnect { background: #10b981; color: white; }
+  .btn-conflict { background: #f59e0b; color: #0f172a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Meridian Multiplayer Sync</h1>
+  <p class="subtitle">Two clients editing the same document. Field-level CRDT in action.</p>
+
+  <div class="clients">
+    <!-- Client A -->
+    <div class="client active" id="client-a">
+      <div class="client-header">
+        <span class="client-name">Alice (Client A)</span>
+        <span class="status online" id="status-a">Online</span>
+      </div>
+      <div class="doc">
+        <div class="field"><label>Title</label><input id="title-a" value="Hello Meridian" /></div>
+        <div class="field"><label>Status</label><input id="status-val-a" value="draft" /></div>
+        <div class="field"><label>Priority</label><input id="priority-a" type="number" value="1" /></div>
+      </div>
+      <div class="actions">
+        <button class="btn-offline" onclick="toggleOffline('a')">Go Offline</button>
+        <button class="btn-conflict" onclick="simulateConflict()">Simulate Conflict</button>
+      </div>
+      <div id="conflict-a"></div>
+    </div>
+
+    <!-- Client B -->
+    <div class="client active" id="client-b">
+      <div class="client-header">
+        <span class="client-name">Bob (Client B)</span>
+        <span class="status online" id="status-b">Online</span>
+      </div>
+      <div class="doc">
+        <div class="field"><label>Title</label><input id="title-b" value="Hello Meridian" /></div>
+        <div class="field"><label>Status</label><input id="status-val-b" value="draft" /></div>
+        <div class="field"><label>Priority</label><input id="priority-b" type="number" value="1" /></div>
+      </div>
+      <div class="actions">
+        <button class="btn-offline" onclick="toggleOffline('b')">Go Offline</button>
+        <button class="btn-conflict" onclick="simulateConflict()">Simulate Conflict</button>
+      </div>
+      <div id="conflict-b"></div>
+    </div>
+
+    <!-- Merge Log -->
+    <div class="merge-log" id="merge-log">
+      <h3>Merge Log (Field-Level CRDT)</h3>
+      <div id="log-entries">
+        <div class="log-entry" style="color:#94a3b8">Waiting for edits...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Simulated Meridian-style field-level CRDT merge
+// This demonstrates the core concept without needing a running server
+
+const docState = {
+  title: { value: 'Hello Meridian', hlc: Date.now(), node: 'server' },
+  status: { value: 'draft', hlc: Date.now(), node: 'server' },
+  priority: { value: 1, hlc: Date.now(), node: 'server' },
+};
+
+const clients = {
+  a: { name: 'Alice', nodeId: 'alice-node', offline: false, hlcOffset: 0 },
+  b: { name: 'Bob', nodeId: 'bob-node', offline: false, hlcOffset: 1 },
+};
+
+function logMerge(field, winner, loser) {
+  const el = document.getElementById('log-entries');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="winner">✓ ${field}: "${winner.value}"</span> won over <span class="loser">"${loser.value}"</span> (HLC: ${winner.hlc} > ${loser.hlc})`;
+  el.insertBefore(entry, el.firstChild);
+}
+
+function mergeField(field, clientField, clientNode, clientHLC) {
+  const current = docState[field];
+  if (clientHLC > current.hlc || (clientHLC === current.hlc && clientNode > current.node)) {
+    const old = { ...current };
+    docState[field] = { value: clientField, hlc: clientHLC, node: clientNode };
+    logMerge(field, docState[field], old);
+    return true;
+  }
+  return false;
+}
+
+function syncClient(clientId) {
+  const c = clients[clientId];
+  if (c.offline) return;
+
+  const titleEl = document.getElementById(`title-${clientId}`);
+  const statusEl = document.getElementById(`status-val-${clientId}`);
+  const priorityEl = document.getElementById(`priority-${clientId}`);
+
+  c.hlcOffset += 10;
+  const hlc = c.hlcOffset;
+
+  const changed = [];
+  if (mergeField('title', titleEl.value, c.nodeId, hlc)) changed.push('title');
+  if (mergeField('status', statusEl.value, c.nodeId, hlc+1)) changed.push('status');
+  if (mergeField('priority', parseInt(priorityEl.value), c.nodeId, hlc+2)) changed.push('priority');
+
+  // Update both clients with the merged state
+  updateUI();
+  return changed;
+}
+
+function updateUI() {
+  for (const id of ['a', 'b']) {
+    document.getElementById(`title-${id}`).value = docState.title.value;
+    document.getElementById(`status-val-${id}`).value = docState.status.value;
+    document.getElementById(`priority-${id}`).value = docState.priority.value;
+  }
+}
+
+function toggleOffline(clientId) {
+  const c = clients[clientId];
+  c.offline = !c.offline;
+
+  const statusEl = document.getElementById(`status-${clientId}`);
+  const clientEl = document.getElementById(`client-${clientId}`);
+  const btn = clientEl.querySelector('.btn-offline');
+
+  if (c.offline) {
+    statusEl.textContent = 'Offline';
+    statusEl.className = 'status offline';
+    clientEl.classList.remove('active');
+    btn.textContent = 'Reconnect';
+    btn.className = 'btn-reconnect';
+  } else {
+    statusEl.textContent = 'Syncing...';
+    statusEl.className = 'status syncing';
+    clientEl.classList.add('active');
+    btn.textContent = 'Go Offline';
+    btn.className = 'btn-offline';
+    syncClient(clientId);
+    setTimeout(() => {
+      statusEl.textContent = 'Online';
+      statusEl.className = 'status online';
+    }, 500);
+  }
+}
+
+function simulateConflict() {
+  // Both clients edit the SAME field concurrently
+  document.getElementById('title-a').value = 'Alice Edit';
+  document.getElementById('title-b').value = 'Bob Edit';
+
+  // Alice's edit wins (higher HLC)
+  clients.a.hlcOffset += 100;
+  const aliceChanged = syncClient('a');
+
+  // Bob's edit loses
+  clients.b.hlcOffset += 50;
+  const bobChanged = syncClient('b');
+
+  // Show conflict badge momentarily
+  for (const id of ['a', 'b']) {
+    const badge = document.getElementById(`conflict-${id}`);
+    badge.innerHTML = '<span class="conflict-badge">Conflict Resolved</span>';
+    setTimeout(() => { badge.innerHTML = ''; }, 2000);
+  }
+}
+
+// Auto-sync on input
+for (const id of ['a', 'b']) {
+  ['title', 'status-val', 'priority'].forEach(field => {
+    document.getElementById(`${field}-${id}`).addEventListener('input', () => {
+      syncClient(id);
+    });
+  });
+}
+</script>
+</body>
+</html>

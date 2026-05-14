@@ -95,6 +95,15 @@ export {
   type ConflictInfo,
 } from './storage.js';
 
+// Transport — Abstraction layer (WebSocket, WebRTC, TCP, Redis, etc.)
+export {
+  WebSocketTransport,
+  createTransport,
+  type Transport,
+  type TransportConfig,
+  type TransportType,
+} from './transport.js';
+
 // Crypto — E2E encryption layer
 export {
   deriveKey,

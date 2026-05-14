@@ -74,4 +74,48 @@ for (let i = 0; i < 500; i++) {
 
 const elapsed = performance.now() - start;
 console.log(`  Time: ${elapsed.toFixed(1)}ms (1,500 operations)`);
-console.log(`  Throughput: ${Math.round(1500 / (elapsed / 1000)).toLocaleString()} ops/s\n`);
+console.log(`  Throughput: ${Math.round(1500 / (elapsed / 1000)).toLocaleString()} ops/s`);
+
+// ─── Scale Benchmarks ──────────────────────────────────────────────────────
+
+console.log('\n--- Scale Benchmarks ---\n');
+
+// 100K document merge benchmark
+console.log('100K Document Merge:');
+const scaleClock = new HLC('bench');
+const scaleStart = performance.now();
+const scaleDoc = createLWWMap({ id: 'scale-1', title: 'Initial', count: 0 }, '0-0000-n', 'n');
+
+for (let i = 0; i < 100_000; i++) {
+  const ts = serializeHLC(scaleClock.now());
+  const remote = createLWWMap({ title: `Title ${i}`, count: i }, ts, 'n');
+  mergeLWWMaps(scaleDoc, remote);
+}
+console.log(`  Time: ${(performance.now() - scaleStart).toFixed(0)}ms (100,000 merges)`);
+
+// Memory usage estimation
+console.log('\nMemory Usage:');
+const memDocs: ReturnType<typeof createLWWMap>[] = [];
+for (let i = 0; i < 10_000; i++) {
+  memDocs.push(createLWWMap(
+    { id: `doc-${i}`, title: `Document ${i} Title Here`, done: i % 2 === 0, count: i },
+    `100-0000-n`, 'n'
+  ));
+}
+const memUsage = process.memoryUsage();
+console.log(`  10K documents in memory: ~${Math.round(memUsage.heapUsed / 1024 / 1024)}MB heap`);
+
+// Sync payload size
+console.log('\nPayload Size:');
+const sampleOp = {
+  id: 'doc-1-title-100-0001-n',
+  collection: 'todos',
+  docId: 'doc-1',
+  field: 'title',
+  value: 'Hello World',
+  hlc: '100-0001-n',
+  nodeId: 'n',
+};
+const payload = JSON.stringify(sampleOp);
+console.log(`  Single field update: ${payload.length} bytes\n`);
+
