@@ -148,6 +148,25 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@25.6.2)
 
+  tests:
+    dependencies:
+      '@meridian-sync/client':
+        specifier: workspace:*
+        version: link:../packages/client
+      '@meridian-sync/server':
+        specifier: workspace:*
+        version: link:../packages/server
+      '@meridian-sync/shared':
+        specifier: workspace:*
+        version: link:../packages/shared
+    devDependencies:
+      fake-indexeddb:
+        specifier: ^6.0.0
+        version: 6.2.5
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@25.6.2)
+
 packages:
 
   '@babel/runtime@7.29.2':
