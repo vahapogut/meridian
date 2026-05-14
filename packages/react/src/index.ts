@@ -6,6 +6,7 @@
 
 export {
   useQuery,
+  useQueryOptimized,
   useLiveQuery,
   useDoc,
   useSync,

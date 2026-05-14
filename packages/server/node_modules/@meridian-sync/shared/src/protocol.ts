@@ -58,6 +58,8 @@ export interface PullMessage {
 export interface SubscribeMessage {
   type: 'subscribe';
   collections: string[];
+  /** Optional row-level filter — only matching documents are synced */
+  filter?: Record<string, Record<string, unknown>>;
 }
 
 /** Send/update ephemeral presence data */

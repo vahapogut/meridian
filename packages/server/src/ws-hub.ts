@@ -36,6 +36,8 @@ export interface WsHubConfig {
   onMessage: (clientId: string, message: ClientMessage, client: ConnectedClient) => void;
   /** Disconnect handler */
   onDisconnect?: (clientId: string) => void;
+  /** Subscribe handler — called when client subscribes with optional filter */
+  onSubscribe?: (clientId: string, collections: string[], filter?: Record<string, Record<string, unknown>>) => void;
   /** Debug mode */
   debug?: boolean;
 }
@@ -210,6 +212,9 @@ export class WsHub {
     if (msg.type === 'subscribe') {
       for (const collection of msg.collections) {
         client.subscribedCollections.add(collection);
+      }
+      if (this.config.onSubscribe) {
+        this.config.onSubscribe(clientId, msg.collections, msg.filter);
       }
       this.log(`📋 Client ${clientId} subscribed to: ${msg.collections.join(', ')}`);
       return;

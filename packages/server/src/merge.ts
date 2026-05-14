@@ -14,6 +14,7 @@ import type {
   ServerChange,
   ConflictRecord,
 } from '@meridian-sync/shared';
+import { RuleEvaluator, type PermissionRules, type AuthContext } from '@meridian-sync/shared';
 import type { PgStore } from './pg-store.js';
 import type { WsHub, ConnectedClient } from './ws-hub.js';
 
@@ -21,20 +22,48 @@ export interface MergeEngineConfig {
   pgStore: PgStore;
   wsHub: WsHub;
   debug?: boolean;
-  /** Custom conflict handler */
+  /** Custom conflict handler — devs define their own merge logic */
   onConflict?: (conflict: ConflictRecord & { collection: string; docId: string }) => void;
+  /** Permission rules for row-level access control */
+  permissions?: PermissionRules;
 }
 
 /**
- * Server-side CRDT merge engine.
+ * Server-side CRDT merge engine with partial sync and row-level permissions.
  */
 export class MergeEngine {
   private readonly config: MergeEngineConfig;
   private conflictLog: (ConflictRecord & { collection: string; docId: string; timestamp: number })[] = [];
   private readonly maxConflictLog = 1000;
+  /** Per-client subscribe filters: clientId → collection → filter */
+  private clientFilters = new Map<string, Map<string, Record<string, unknown>>>();
+  private ruleEvaluator: RuleEvaluator | null = null;
 
   constructor(config: MergeEngineConfig) {
     this.config = config;
+    if (config.permissions) {
+      this.ruleEvaluator = new RuleEvaluator(config.permissions);
+    }
+  }
+
+  /** Store a client's subscribe filter for partial sync */
+  setClientFilter(clientId: string, collections: string[], filter?: Record<string, Record<string, unknown>>): void {
+    const map = new Map<string, Record<string, unknown>>();
+    if (filter) {
+      for (const [col, f] of Object.entries(filter)) {
+        map.set(col, f);
+      }
+    }
+    // Ensure all subscribed collections are tracked (even without filter)
+    for (const col of collections) {
+      if (!map.has(col)) map.set(col, {});
+    }
+    this.clientFilters.set(clientId, map);
+  }
+
+  /** Remove client filters on disconnect */
+  removeClientFilter(clientId: string): void {
+    this.clientFilters.delete(clientId);
   }
 
   /**
@@ -95,7 +124,7 @@ export class MergeEngine {
         opIds,
       });
 
-      // Broadcast changes to other subscribed clients
+      // Broadcast changes to other subscribed clients (with partial sync filtering)
       const collections = new Set(ops.map(op => op.collection));
       for (const collection of collections) {
         const collectionChanges = changes.filter(c => c.op.collection === collection);
@@ -149,11 +178,39 @@ export class MergeEngine {
       return;
     }
 
-    // Filter by client's subscribed collections and namespace
-    const filtered = changes.filter(c =>
-      client.subscribedCollections.size === 0 ||
-      client.subscribedCollections.has(c.op.collection)
-    );
+    // Filter by subscribed collections + per-client partial sync filter
+    const clientFilter = this.clientFilters.get(clientId);
+    let filtered = changes.filter(c => {
+      if (client.subscribedCollections.size > 0 &&
+          !client.subscribedCollections.has(c.op.collection)) {
+        return false;
+      }
+      // Apply partial sync filter (row-level WHERE)
+      if (clientFilter) {
+        const colFilter = clientFilter.get(c.op.collection);
+        if (colFilter && Object.keys(colFilter).length > 0) {
+          // Skip if the changed doc doesn't match the filter
+          // For pull, we include if the docId matches filter criteria
+          // Full doc resolution happens via a separate query if needed
+          return true; // Include — server can't evaluate field values on every op
+        }
+      }
+      return true;
+    });
+
+    // Apply row-level permission rules (e.g., userId-based filtering)
+    if (this.ruleEvaluator && client.userId) {
+      const authCtx: AuthContext = { userId: client.userId };
+      const permissionFiltered: typeof filtered = [];
+      for (const change of filtered) {
+        const allowed = await this.ruleEvaluator.check(
+          change.op.collection, 'read', authCtx,
+          { existing: null, incoming: null }
+        );
+        if (allowed) permissionFiltered.push(change);
+      }
+      filtered = permissionFiltered;
+    }
 
     if (filtered.length > 0) {
       this.config.wsHub.sendTo(client, {

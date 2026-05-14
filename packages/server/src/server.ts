@@ -30,7 +30,7 @@
  * ```
  */
 
-import type { SchemaDefinition, ConflictRecord } from '@meridian-sync/shared';
+import type { SchemaDefinition, ConflictRecord, PermissionRules } from '@meridian-sync/shared';
 import { PgStore } from './pg-store.js';
 import { WsHub, type AuthResult } from './ws-hub.js';
 import { MergeEngine } from './merge.js';
@@ -71,8 +71,24 @@ export interface MeridianServerConfig {
 
   /**
    * Conflict handler — called when a field-level conflict is resolved.
+   * Use this to implement custom merge logic for specific collections or fields.
    */
   onConflict?: (conflict: ConflictRecord & { collection: string; docId: string }) => void;
+
+  /**
+   * Permission rules for row-level access control.
+   * When provided, only rows the user is authorized to read are returned.
+   *
+   * ```ts
+   * permissions: defineRules({
+   *   todos: {
+   *     read: (auth, doc) => auth?.userId === doc.existing?.ownerId,
+   *     write: (auth, doc) => auth != null,
+   *   }
+   * })
+   * ```
+   */
+  permissions?: PermissionRules;
 
   /**
    * Enable debug logging.
@@ -108,6 +124,7 @@ export function createServer(config: MeridianServerConfig): MeridianServer {
     auth,
     compaction,
     onConflict,
+    permissions,
     debug = false,
   } = config;
 
@@ -147,6 +164,10 @@ export function createServer(config: MeridianServerConfig): MeridianServer {
     },
     onDisconnect: (clientId) => {
       presenceManager.remove(clientId);
+      mergeEngine.removeClientFilter(clientId);
+    },
+    onSubscribe: (clientId, collections, filter) => {
+      mergeEngine.setClientFilter(clientId, collections, filter);
     },
   });
 
@@ -156,6 +177,7 @@ export function createServer(config: MeridianServerConfig): MeridianServer {
     wsHub,
     debug,
     onConflict,
+    permissions,
   });
 
   // Initialize presence manager

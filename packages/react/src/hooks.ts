@@ -172,6 +172,81 @@ export function usePresence(client: MeridianClient): Record<string, Record<strin
   return peers;
 }
 
+// ─── useQueryOptimized (Fine-Grained Reactivity) ────────────────────────────
+
+/**
+ * Fine-grained reactive query — only re-renders when individual documents change.
+ *
+ * Uses a stable Map keyed by document ID. Components that read from this Map
+ * via useDoc() will only re-render when their specific document changes,
+ * not the entire collection.
+ *
+ * ```tsx
+ * const docs = useQueryOptimized(db.todos.find());
+ * // docs is a Map<string, Record<string, unknown>>
+ * // Only components reading docs.get('specific-id') will re-render on change
+ * ```
+ */
+export function useQueryOptimized(
+  query: Query<Record<string, unknown>[]>
+): Map<string, Record<string, unknown>> {
+  const [docMap, setDocMap] = useState<Map<string, Record<string, unknown>>>(new Map());
+
+  useEffect(() => {
+    let mounted = true;
+    const unsub = query.subscribe((docs) => {
+      if (!mounted) return;
+      setDocMap(prev => {
+        const next = new Map(prev);
+        const newIds = new Set<string>();
+
+        // Add/update changed docs
+        for (const doc of docs) {
+          const id = doc.id as string;
+          newIds.add(id);
+          const existing = prev.get(id);
+          if (!existing || !shallowEqual(existing, doc)) {
+            next.set(id, { ...doc });
+          }
+        }
+
+        // Remove deleted docs
+        for (const id of prev.keys()) {
+          if (!newIds.has(id)) {
+            next.delete(id);
+          }
+        }
+
+        // Skip re-render if nothing changed
+        if (next.size === prev.size) {
+          let allSame = true;
+          for (const [id, doc] of next) {
+            if (prev.get(id) !== doc) { allSame = false; break; }
+          }
+          if (allSame) return prev;
+        }
+
+        return next;
+      });
+    });
+    return () => { unsub(); mounted = false; };
+  }, []);
+
+  return docMap;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function shallowEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  if (keysA.length !== keysB.length) return false;
+  for (const key of keysA) {
+    if (a[key] !== b[key]) return false;
+  }
+  return true;
+}
+
 // ─── useMutation ────────────────────────────────────────────────────────────
 
 /**
