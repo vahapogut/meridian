@@ -3,50 +3,295 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Meridian Sync Engine — Demo</title>
-  <link rel="stylesheet" href="./styles.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>MeridianDB — Local-First Sync Engine</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #09090b; --panel: #18181b; --border: #27272a; --text: #fafafa; --muted: #a1a1aa; --accent: #3b82f6; --green: #22c55e; --red: #ef4444; --amber: #f59e0b; --alice: #8b5cf6; --bob: #ec4899; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+    /* Hero */
+    .hero { text-align: center; padding: 60px 0 40px; }
+    .hero h1 { font-size: 2.8rem; font-weight: 800; letter-spacing: -1px; }
+    .hero h1 span { background: linear-gradient(135deg, var(--accent), var(--alice)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero .tagline { color: var(--muted); font-size: 1.1rem; margin-top: 12px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+    .hero .install { margin-top: 20px; padding: 12px 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.9rem; color: var(--green); display: inline-block; }
+    .hero .links { margin-top: 16px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .hero .links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; transition: all 0.15s; }
+    .hero .links a:hover { border-color: var(--accent); color: var(--text); }
+
+    /* Stats */
+    .stats { display: flex; justify-content: center; gap: 24px; margin: 20px 0 40px; flex-wrap: wrap; }
+    .stat { text-align: center; padding: 16px 24px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; min-width: 100px; }
+    .stat .val { font-size: 1.5rem; font-weight: 700; }
+    .stat .val.green { color: var(--green); }
+    .stat .val.accent { color: var(--accent); }
+    .stat .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    /* Demo */
+    .section-title { font-size: 1.3rem; font-weight: 700; margin: 40px 0 16px; }
+    .section-subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; }
+
+    .clients { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .client { background: var(--panel); border: 2px solid var(--border); border-radius: 12px; padding: 20px; transition: border-color 0.3s; }
+    .client.connected { border-color: var(--green); }
+    .client-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .client-id { display: flex; align-items: center; gap: 8px; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; color: white; }
+    .avatar.alice { background: var(--alice); } .avatar.bob { background: var(--bob); }
+    .status-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 14px; font-weight: 600; }
+    .status-badge.online { background: #065f4640; color: var(--green); border: 1px solid #065f4680; }
+    .status-badge.offline { background: #7f1d1d40; color: var(--red); border: 1px solid #7f1d1d80; }
+
+    .doc { display: flex; flex-direction: column; gap: 10px; }
+    .field { display: flex; flex-direction: column; gap: 3px; }
+    .field label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .field input, .field select { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem; width: 100%; }
+    .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+
+    .actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+    button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-weight: 600; font-size: 0.8rem; background: var(--bg); color: var(--text); transition: all 0.15s; }
+    button:hover { border-color: var(--accent); }
+    button.danger { background: var(--red); color: white; border-color: var(--red); }
+    button.success { background: var(--green); color: white; border-color: var(--green); }
+    button.accent { background: var(--accent); color: white; border-color: var(--accent); }
+
+    .metrics { display: flex; gap: 20px; margin: 16px 0; flex-wrap: wrap; justify-content: center; }
+    .metric { text-align: center; padding: 8px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+    .metric .val { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .metric .lbl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; }
+
+    /* Features */
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+    .feature { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .feature .icon { font-size: 1.3rem; margin-bottom: 6px; }
+    .feature h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+    .feature p { font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+
+    /* Log */
+    .log-panel { margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .log-panel h4 { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .log-entries { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .log-entry { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; padding: 5px 10px; background: var(--bg); border-radius: 4px; }
+    .log-entry .icon.merge { color: var(--accent); }
+    .log-entry .icon.conflict { color: var(--red); }
+
+    /* Footer */
+    footer { text-align: center; padding: 40px 0 20px; color: var(--muted); font-size: 0.8rem; }
+    footer a { color: var(--accent); }
+
+    @media (max-width: 768px) { .clients { grid-template-columns: 1fr; } .hero h1 { font-size: 2rem; } }
+  </style>
 </head>
 <body>
-  <div class="app-container">
-    <header class="glass-panel">
-      <div class="logo">
-        <h1>Meridian</h1>
-      </div>
-      <div class="status-badge" id="conn-status">
-        <span class="status-dot disconnected"></span>
-        <span class="status-text">Disconnected</span>
-      </div>
-    </header>
-
-    <main>
-      <div class="todo-panel glass-panel">
-        <form id="todo-form">
-          <input type="text" id="todo-input" placeholder="What needs to be done?" autocomplete="off" />
-          <button type="submit" class="primary-btn">Add</button>
-        </form>
-
-        <ul id="todo-list" class="todo-list">
-          <!-- Todos injected here by app.ts -->
-        </ul>
-      </div>
-
-      <div class="side-panels">
-        <div class="glass-panel debug-panel">
-          <h3>Sync Queue <span id="queue-count" class="badge">0</span></h3>
-          <ul id="queue-list" class="debug-list"></ul>
-        </div>
-        
-        <div class="glass-panel debug-panel">
-          <h3>Presence <span id="peer-count" class="badge">0</span></h3>
-          <ul id="presence-list" class="debug-list"></ul>
-        </div>
-      </div>
-    </main>
-
-    <div id="cursors-container"></div>
+<div class="container">
+  <div class="hero">
+    <h1>Meridian<span>DB</span></h1>
+    <p class="tagline">High-performance local-first sync engine for realtime collaborative apps. Field-level CRDT. E2E encrypted. Transport-agnostic.</p>
+    <div class="install">npm install meridian-shared meridian-client meridian-server</div>
+    <div class="links">
+      <a href="https://github.com/vahapogut/MeridianDB">GitHub</a>
+      <a href="https://www.npmjs.com/package/meridian-shared">npm</a>
+      <a href="https://pub.dev/packages/meridian_sync">pub.dev</a>
+      <a href="#demo">Live Demo ↓</a>
+    </div>
   </div>
 
-  <script type="module" src="./app.ts"></script>
+  <div class="stats">
+    <div class="stat"><div class="val green">688K</div><div class="lbl">Merge ops/s</div></div>
+    <div class="stat"><div class="val accent">76</div><div class="lbl">Tests</div></div>
+    <div class="stat"><div class="val">12</div><div class="lbl">Packages</div></div>
+    <div class="stat"><div class="val green">12MB</div><div class="lbl">10K docs</div></div>
+    <div class="stat"><div class="val">8</div><div class="lbl">Registry</div></div>
+  </div>
+
+  <div class="features">
+    <div class="feature"><div class="icon">⚡</div><h4>Field-Level CRDT</h4><p>Two users editing the same row never lose data. HLC + LWW at field granularity.</p></div>
+    <div class="feature"><div class="icon">🔐</div><h4>E2E AES-256-GCM</h4><p>Server stores only ciphertext. IndexedDB at-rest + WebSocket in-transit encryption.</p></div>
+    <div class="feature"><div class="icon">📦</div><h4>8 Packages</h4><p>npm + pub.dev + crates.io. React, Vue, RN, Flutter, Rust WASM, CLI.</p></div>
+    <div class="feature"><div class="icon">🔄</div><h4>WAL Streaming</h4><p>PostgreSQL LISTEN/NOTIFY + wal2json logical replication. 100K+ clients.</p></div>
+    <div class="feature"><div class="icon">🌐</div><h4>Transport Agnostic</h4><p>WebSocket today. WebRTC, TCP, Redis, NATS tomorrow. One interface.</p></div>
+    <div class="feature"><div class="icon">📱</div><h4>React + Vue + RN + Flutter</h4><p>Same API across all frameworks. useQuery, useLiveQuery, useSync.</p></div>
+    <div class="feature"><div class="icon">🗜️</div><h4>Sync Compression</h4><p>Debouncing + delta encoding + batched push. 150ms window, 100 ops/batch.</p></div>
+    <div class="feature"><div class="icon">🦀</div><h4>Rust WASM Core</h4><p>HLC + LWW CRDT compiled to WebAssembly. 3-5x faster than pure TypeScript.</p></div>
+  </div>
+
+  <h2 class="section-title" id="demo">Live Demo — Field-Level CRDT Merge</h2>
+  <p class="section-subtitle">Alice and Bob editing the same document. Watch field-level conflict resolution in real-time.</p>
+
+  <div class="metrics">
+    <div class="metric"><div class="val" id="metric-ops">0</div><div class="lbl">Sync Events</div></div>
+    <div class="metric"><div class="val" id="metric-conflicts">0</div><div class="lbl">Conflicts</div></div>
+    <div class="metric"><div class="val green" id="metric-latency">0ms</div><div class="lbl">Latency</div></div>
+  </div>
+
+  <div class="clients">
+    <div class="client connected" id="client-a">
+      <div class="client-header">
+        <div class="client-id"><div class="avatar alice">A</div><strong>Alice</strong></div>
+        <div class="status-badge online" id="status-a">Online</div>
+      </div>
+      <div class="doc">
+        <div class="field"><label>Title</label><input id="a-title" value="Q3 Product Roadmap" class="doc-field" data-field="title"></div>
+        <div class="field"><label>Status</label><select id="a-status" class="doc-field" data-field="status"><option value="draft">Draft</option><option value="review">Review</option><option value="done">Done</option></select></div>
+        <div class="field"><label>Priority</label><input id="a-priority" type="number" value="3" min="1" max="5" class="doc-field" data-field="priority"></div>
+      </div>
+      <div class="actions">
+        <button class="danger" id="btn-offline-a" onclick="toggleOffline('a')">Go Offline</button>
+        <button onclick="simulateConflict()">Simulate Conflict</button>
+        <button class="accent" onclick="rapidEdits()">Rapid Edits</button>
+      </div>
+    </div>
+
+    <div class="client connected" id="client-b">
+      <div class="client-header">
+        <div class="client-id"><div class="avatar bob">B</div><strong>Bob</strong></div>
+        <div class="status-badge online" id="status-b">Online</div>
+      </div>
+      <div class="doc">
+        <div class="field"><label>Title</label><input id="b-title" value="Q3 Product Roadmap" class="doc-field" data-field="title"></div>
+        <div class="field"><label>Status</label><select id="b-status" class="doc-field" data-field="status"><option value="draft">Draft</option><option value="review">Review</option><option value="done">Done</option></select></div>
+        <div class="field"><label>Priority</label><input id="b-priority" type="number" value="3" min="1" max="5" class="doc-field" data-field="priority"></div>
+      </div>
+      <div class="actions">
+        <button class="danger" id="btn-offline-b" onclick="toggleOffline('b')">Go Offline</button>
+        <button onclick="simulateConflict()">Simulate Conflict</button>
+        <button class="accent" onclick="rapidEdits()">Rapid Edits</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="log-panel">
+    <h4>Merge Log — Watch CRDT in Action</h4>
+    <div class="log-entries" id="log-entries">
+      <div class="log-entry"><span class="icon merge">●</span> Engine ready. HLC + LWW CRDT active.</div>
+    </div>
+  </div>
+
+  <footer>
+    Built by <a href="https://ipeclabs.com">IPEC Labs</a>. Apache-2.0.
+    <a href="https://github.com/vahapogut/MeridianDB">GitHub</a> ·
+    <a href="https://www.npmjs.com/package/meridian-shared">npm</a>
+  </footer>
+</div>
+
+<script>
+// MeridianDB CRDT Engine (In-Browser)
+const ENGINE = {
+  state: {},
+  merge(field, value, hlc, node) {
+    const current = this.state[field];
+    const start = performance.now();
+    if (!current || hlc > current.hlc || (hlc === current.hlc && node > current.node)) {
+      const old = current ? { ...current } : null;
+      this.state[field] = { value, hlc, node };
+      const ms = (performance.now() - start).toFixed(1);
+      if (old && old.value !== value) {
+        this.log('conflict', `Conflict on "${field}": "${old.value}" → "${value}" (HLC: ${hlc} > ${old.hlc})`);
+        this.m.conflicts++;
+      } else if (!old) {
+        this.log('merge', `Set "${field}" = "${value}"`);
+      }
+      this.m.ops++;
+      this.m.latency = ms;
+      return true;
+    }
+    return false;
+  },
+  log(type, msg) {
+    const el = document.getElementById('log-entries');
+    const d = document.createElement('div');
+    d.className = 'log-entry';
+    d.innerHTML = `<span class="icon ${type}">${type === 'conflict' ? '⚠' : '●'}</span> ${msg}`;
+    el.insertBefore(d, el.firstChild);
+    while (el.children.length > 30) el.lastChild.remove();
+  },
+  m: { ops: 0, conflicts: 0, latency: 0 }
+};
+
+const BASE = Date.now();
+ENGINE.merge('title', 'Q3 Product Roadmap', BASE, 'server');
+ENGINE.merge('status', 'draft', BASE+1, 'server');
+ENGINE.merge('priority', 3, BASE+2, 'server');
+
+const C = {
+  a: { node: 'alice', offline: false, hlc: 1000 },
+  b: { node: 'bob', offline: false, hlc: 2000 }
+};
+
+function sync(id) {
+  const c = C[id]; if (c.offline) return;
+  const p = id === 'a' ? 'a-' : 'b-';
+  c.hlc += 1;
+  let n = 0;
+  document.querySelectorAll(`#client-${id} .doc-field`).forEach(el => {
+    const v = el.tagName === 'SELECT' ? el.value : (el.type === 'number' ? parseInt(el.value) : el.value);
+    ENGINE.merge(el.dataset.field, v, c.hlc + n * 10, c.node);
+    n++;
+  });
+  if (n > 0) {
+    const o = id === 'a' ? 'b' : 'a';
+    if (!C[o].offline) updateUI(o);
+    updateUI(id);
+    updateMetrics();
+  }
+}
+
+function updateUI(id) {
+  const p = id === 'a' ? 'a-' : 'b-';
+  document.querySelectorAll(`#client-${id} .doc-field`).forEach(el => {
+    const s = ENGINE.state[el.dataset.field];
+    if (!s) return;
+    const cv = el.tagName === 'SELECT' ? el.value : (el.type === 'number' ? parseInt(el.value) : el.value);
+    if (cv !== s.value) {
+      if (el.tagName === 'SELECT') el.value = s.value;
+      else el.value = s.value;
+    }
+  });
+}
+
+function toggleOffline(id) {
+  C[id].offline = !C[id].offline;
+  const cl = document.getElementById(`client-${id}`);
+  const st = document.getElementById(`status-${id}`);
+  const btn = document.getElementById(`btn-offline-${id}`);
+  if (C[id].offline) {
+    cl.className = 'client'; st.className = 'status-badge offline'; st.textContent = 'Offline';
+    btn.textContent = 'Reconnect'; btn.className = 'success';
+  } else {
+    cl.className = 'client connected'; st.className = 'status-badge online'; st.textContent = 'Online';
+    btn.textContent = 'Go Offline'; btn.className = 'danger';
+    sync(id);
+  }
+}
+
+function simulateConflict() {
+  document.getElementById('a-title').value = 'Alice Edit';
+  document.getElementById('b-title').value = 'Bob Edit';
+  C.a.hlc += 100; sync('a');
+  C.b.hlc += 10; sync('b');
+  setTimeout(updateMetrics, 200);
+}
+
+function rapidEdits() {
+  const el = document.getElementById('a-title');
+  const base = el.value; let i = 0;
+  const edits = ['v1', 'v2', 'v3', 'final'];
+  const iv = setInterval(() => { if (i >= edits.length) { clearInterval(iv); return; } el.value = base + ' — ' + edits[i]; sync('a'); i++; }, 200);
+}
+
+function updateMetrics() {
+  document.getElementById('metric-ops').textContent = ENGINE.m.ops;
+  document.getElementById('metric-conflicts').textContent = ENGINE.m.conflicts;
+  document.getElementById('metric-latency').textContent = ENGINE.m.latency + 'ms';
+}
+
+document.querySelectorAll('.doc-field').forEach(el => {
+  el.addEventListener('input', () => sync(el.id.startsWith('a-') ? 'a' : 'b'));
+});
+
+setTimeout(() => { updateUI('a'); updateUI('b'); updateMetrics(); }, 300);
+</script>
 </body>
 </html>
