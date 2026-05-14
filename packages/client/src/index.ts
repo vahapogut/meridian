@@ -24,3 +24,4 @@ export { CollectionProxy, type Query, type Subscriber, type Unsubscribe, type Li
 export { TabCoordinator, type TabRole } from './tab-coordinator.js';
 export { PresenceManager, type PresenceData, type PresenceCallback } from './presence.js';
 export { DebugManager } from './debug.js';
+export { SyncCompressor, type CompressionConfig } from './compression.js';

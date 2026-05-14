@@ -21,6 +21,7 @@
   <img src="https://img.shields.io/badge/React-hooks-blue?logo=react" alt="React">
   <img src="https://img.shields.io/badge/React_Native-mobile-blue?logo=react" alt="React Native">
   <img src="https://img.shields.io/badge/SQLite-adapter-orange?logo=sqlite" alt="SQLite">
+  <img src="https://img.shields.io/badge/Vue-composables-green?logo=vue.js" alt="Vue">
   <img src="https://img.shields.io/badge/E2E-encrypted-green" alt="E2E Encryption">
 </p>
 
@@ -306,11 +307,18 @@ Meridian is evolving to become the ultimate infra product for local-first develo
 - [x] **SQLite Adapter:** `SQLiteStore` with better-sqlite3, sql.js WASM, and Turso/libsql support.
 - [x] **React Native SDK:** `@meridian-sync/react-native` with AsyncStorage + same hooks API.
 
+### Done in v0.5.0
+- [x] **Sync Compression:** Debouncing + delta encoding + batched push. 150ms window, 100 ops/batch.
+- [x] **MySQL Adapter:** `MySQLStore` with mysql2 driver. Full CRDT merge, compaction, indexes.
+- [x] **Vue Composables:** `@meridian-sync/vue` — useQuery, useLiveQuery, useDoc, useSync, useMutation.
+- [x] **Snapshot Recovery:** Periodic snapshots. O(snapshot + delta) sync instead of O(all_ops).
+- [x] **Transport Abstraction:** `Transport` interface + `WebSocketTransport`. WebRTC/TCP/Redis ready.
+- [x] **Multiplayer Demo:** `demo/multiplayer.html` — interactive field-level CRDT merge visualization.
+
 ### Coming Next
-- [ ] **Sync Compression:** Debouncing typing operations in the offline queue.
-- [ ] **MySQL Adapter:** MySQL implementation of the StorageAdapter interface.
-- [ ] **Vue/Svelte hooks:** Framework support beyond React.
 - [ ] **Flutter SDK:** Dart/Flutter client for cross-platform mobile.
+- [ ] **Rust Core:** WASM-compiled core for maximum performance.
+- [ ] **Svelte stores:** Svelte 5 integration.
 
 ## Performance
 

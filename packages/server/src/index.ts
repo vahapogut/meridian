@@ -12,6 +12,8 @@ export { ServerPresenceManager } from './presence.js';
 export { CompactionManager, type CompactionConfig } from './compaction.js';
 export { createWALStream, type WALStreamConfig, type WALChange } from './wal-stream.js';
 export { SQLiteStore, type SQLiteStoreConfig, type SQLDriver, type SQLStatement } from './sqlite-store.js';
+export { MySQLStore, type MySQLStoreConfig, type MySQLPool } from './mysql-store.js';
+export { SnapshotManager, type Snapshot, type SnapshotConfig, type CollectionSnapshot } from './snapshot.js';
 
 // Re-export from shared for convenience
 export {
