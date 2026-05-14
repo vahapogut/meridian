@@ -1,4 +1,5 @@
 /// CRDT — Last-Writer-Wins Register and Map for field-level conflict resolution.
+import 'hlc.dart';
 
 class LWWRegister<T> {
   T value;
@@ -57,7 +58,7 @@ class LWWMap {
   Map<String, String> extractMetadata() {
     final result = <String, String>{};
     for (final entry in fields.entries) {
-      result[entry.key] = entry.value;
+      result[entry.key] = entry.value.hlc;
     }
     return result;
   }

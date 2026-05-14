@@ -121,8 +121,31 @@ Meridian solves this by abstracting the entire sync layer into a single, cohesiv
 ### 1. Install
 
 ```bash
-npm install meridian-client meridian-server meridian-shared
+# Core
+npm install meridian-shared meridian-client meridian-server
+
+# Framework bindings
+npm install meridian-react-sync   # React hooks
+npm install meridian-vue          # Vue composables
+npm install meridian-react-native # React Native
+
+# CLI
+npm install -g meridiandb-cli
+
+# Flutter
+dart pub add meridian_sync
 ```
+
+| Package | npm |
+|---|---|
+| Core — CRDT, HLC, protocol | [meridian-shared](https://www.npmjs.com/package/meridian-shared) |
+| Browser client | [meridian-client](https://www.npmjs.com/package/meridian-client) |
+| Node.js server | [meridian-server](https://www.npmjs.com/package/meridian-server) |
+| React hooks | [meridian-react-sync](https://www.npmjs.com/package/meridian-react-sync) |
+| Vue composables | [meridian-vue](https://www.npmjs.com/package/meridian-vue) |
+| React Native | [meridian-react-native](https://www.npmjs.com/package/meridian-react-native) |
+| CLI tools | [meridiandb-cli](https://www.npmjs.com/package/meridiandb-cli) |
+| Flutter | [meridian_sync](https://pub.dev/packages/meridian_sync) |
 
 ### 2. Define your Schema (Shared)
 

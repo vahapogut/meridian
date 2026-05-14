@@ -21,6 +21,7 @@ class MeridianClient {
   final _clock = HLC(HLC.generateNodeId());
   late final MeridianTransport _transport;
   late final LocalStore _store;
+  // ignore: unused_field
   bool _destroyed = false;
 
   MeridianClient({

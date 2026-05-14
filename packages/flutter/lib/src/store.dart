@@ -1,8 +1,8 @@
 /// SQLite-backed local store for Meridian Flutter client.
 /// Uses sqflite for on-device persistence.
 
-import 'dart:convert';
 import 'crdt.dart';
+import 'schema.dart';
 
 abstract class LocalStore {
   Future<void> init(SchemaDefinition schema);
