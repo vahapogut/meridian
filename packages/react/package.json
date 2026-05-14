@@ -1,0 +1,36 @@
+{
+  "name": "@meridian-sync/react",
+  "version": "0.2.0",
+  "description": "React hooks for Meridian — useQuery, useLiveQuery, useSync, useDoc",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --external react",
+    "test": "vitest run --passWithNoTests",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch --external react"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "@meridian-sync/client": "workspace:*"
+  },
+  "dependencies": {
+    "@meridian-sync/client": "workspace:*",
+    "@meridian-sync/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "files": ["dist"],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vahapogut/meridian"
+  },
+  "keywords": ["react", "hooks", "meridian", "sync", "local-first", "realtime", "crdt"],
+  "author": "Abdulvahap OGUT <info@ipeclabs.com>"
+}

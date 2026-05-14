@@ -94,3 +94,16 @@ export {
   type SQLiteAdapterConfig,
   type ConflictInfo,
 } from './storage.js';
+
+// Crypto — E2E encryption layer
+export {
+  deriveKey,
+  encryptValue,
+  decryptValue,
+  encryptFields,
+  decryptFields,
+  encryptOperation,
+  generateRandomPassword,
+  uint8ToBase64,
+  base64ToUint8,
+} from './crypto.js';
