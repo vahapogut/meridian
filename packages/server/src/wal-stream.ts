@@ -14,7 +14,7 @@
  */
 
 import { Client } from 'pg';
-import type { CRDTOperation, ServerChange } from '@meridian-sync/shared';
+import type { CRDTOperation, ServerChange } from 'meridian-shared';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

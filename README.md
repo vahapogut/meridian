@@ -52,7 +52,7 @@ No cache invalidation headaches.
 Define your schema, connect to the database, and start writing. That's it.
 
 ```typescript
-import { createClient } from '@meridian-sync/client';
+import { createClient } from 'meridian-client';
 
 const db = createClient({
   schema,
@@ -114,21 +114,21 @@ Meridian solves this by abstracting the entire sync layer into a single, cohesiv
 * **Partial Sync:** Row-level `WHERE` filters on subscriptions — clients only sync matching data, not entire collections.
 * **Row-Level Permissions:** Server-side `RuleEvaluator` filters changes by auth context. Users only see authorized rows.
 * **SQLite Adapter:** Full `SQLiteStore` implementing the StorageAdapter interface — works with better-sqlite3, sql.js, and Turso.
-* **React Native SDK:** `@meridian-sync/react-native` — AsyncStorage-backed client with the same hooks API as the browser.
+* **React Native SDK:** `meridian-react-native` — AsyncStorage-backed client with the same hooks API as the browser.
 
 ## Quick Start
 
 ### 1. Install
 
 ```bash
-npm install @meridian-sync/client @meridian-sync/server @meridian-sync/shared
+npm install meridian-client meridian-server meridian-shared
 ```
 
 ### 2. Define your Schema (Shared)
 
 ```typescript
 // shared/schema.ts
-import { defineSchema, z } from '@meridian-sync/shared';
+import { defineSchema, z } from 'meridian-shared';
 
 export const schema = defineSchema({
   version: 1,
@@ -147,7 +147,7 @@ export const schema = defineSchema({
 
 ```typescript
 // server.ts
-import { createServer } from '@meridian-sync/server';
+import { createServer } from 'meridian-server';
 import { schema } from './shared/schema';
 
 const server = createServer({
@@ -168,7 +168,7 @@ await server.start();
 
 ```typescript
 // client.ts
-import { createClient } from '@meridian-sync/client';
+import { createClient } from 'meridian-client';
 import { schema } from './shared/schema';
 
 const db = createClient({
@@ -184,7 +184,7 @@ db.issues.find().subscribe(issues => console.log(issues));
 ### 5. React Integration (Optional)
 
 ```tsx
-import { useQuery, useLiveQuery, useMutation } from '@meridian-sync/react';
+import { useQuery, useLiveQuery, useMutation } from 'meridian-react';
 
 function TodoList() {
   const todos = useQuery(db.todos.find());
@@ -307,12 +307,12 @@ Meridian is evolving to become the ultimate infra product for local-first develo
 - [x] **Custom Conflict Hooks:** `onConflict` callback on MergeEngine for custom merge logic.
 - [x] **Fine-Grained Reactivity:** `useQueryOptimized` — only changed documents trigger re-renders.
 - [x] **SQLite Adapter:** `SQLiteStore` with better-sqlite3, sql.js WASM, and Turso/libsql support.
-- [x] **React Native SDK:** `@meridian-sync/react-native` with AsyncStorage + same hooks API.
+- [x] **React Native SDK:** `meridian-react-native` with AsyncStorage + same hooks API.
 
 ### Done in v0.5.0
 - [x] **Sync Compression:** Debouncing + delta encoding + batched push. 150ms window, 100 ops/batch.
 - [x] **MySQL Adapter:** `MySQLStore` with mysql2 driver. Full CRDT merge, compaction, indexes.
-- [x] **Vue Composables:** `@meridian-sync/vue` — useQuery, useLiveQuery, useDoc, useSync, useMutation.
+- [x] **Vue Composables:** `meridian-vue` — useQuery, useLiveQuery, useDoc, useSync, useMutation.
 - [x] **Snapshot Recovery:** Periodic snapshots. O(snapshot + delta) sync instead of O(all_ops).
 - [x] **Transport Abstraction:** `Transport` interface + `WebSocketTransport`. WebRTC/TCP/Redis ready.
 - [x] **Multiplayer Demo:** `demo/multiplayer.html` — interactive field-level CRDT merge visualization.

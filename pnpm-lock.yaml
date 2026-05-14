@@ -10,18 +10,18 @@ importers:
 
   demo:
     dependencies:
-      '@meridian-sync/client':
-        specifier: workspace:*
-        version: link:../packages/client
-      '@meridian-sync/server':
-        specifier: workspace:*
-        version: link:../packages/server
-      '@meridian-sync/shared':
-        specifier: workspace:*
-        version: link:../packages/shared
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
+      meridian-client:
+        specifier: workspace:*
+        version: link:../packages/client
+      meridian-server:
+        specifier: workspace:*
+        version: link:../packages/server
+      meridian-shared:
+        specifier: workspace:*
+        version: link:../packages/shared
     devDependencies:
       concurrently:
         specifier: ^8.2.2
@@ -38,10 +38,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@meridian-sync/server':
+      meridian-server:
         specifier: workspace:*
         version: link:../server
-      '@meridian-sync/shared':
+      meridian-shared:
         specifier: workspace:*
         version: link:../shared
       pg:
@@ -63,12 +63,12 @@ importers:
 
   packages/client:
     dependencies:
-      '@meridian-sync/shared':
-        specifier: workspace:*
-        version: link:../shared
       idb:
         specifier: ^8.0.0
         version: 8.0.3
+      meridian-shared:
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       fake-indexeddb:
         specifier: ^6.0.0
@@ -85,10 +85,10 @@ importers:
 
   packages/react:
     dependencies:
-      '@meridian-sync/client':
+      meridian-client:
         specifier: workspace:*
         version: link:../client
-      '@meridian-sync/shared':
+      meridian-shared:
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -110,15 +110,15 @@ importers:
 
   packages/react-native:
     dependencies:
-      '@meridian-sync/client':
-        specifier: workspace:*
-        version: link:../client
-      '@meridian-sync/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@react-native-async-storage/async-storage':
         specifier: ^1.21.0
         version: 1.24.0(react-native@0.76.9(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.6))
+      meridian-client:
+        specifier: workspace:*
+        version: link:../client
+      meridian-shared:
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/react':
         specifier: ^19.0.0
@@ -141,7 +141,7 @@ importers:
 
   packages/server:
     dependencies:
-      '@meridian-sync/shared':
+      meridian-shared:
         specifier: workspace:*
         version: link:../shared
       pg:
@@ -181,10 +181,10 @@ importers:
 
   packages/vue:
     dependencies:
-      '@meridian-sync/client':
+      meridian-client:
         specifier: workspace:*
         version: link:../client
-      '@meridian-sync/shared':
+      meridian-shared:
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -203,13 +203,13 @@ importers:
 
   tests:
     dependencies:
-      '@meridian-sync/client':
+      meridian-client:
         specifier: workspace:*
         version: link:../packages/client
-      '@meridian-sync/server':
+      meridian-server:
         specifier: workspace:*
         version: link:../packages/server
-      '@meridian-sync/shared':
+      meridian-shared:
         specifier: workspace:*
         version: link:../packages/shared
     devDependencies:

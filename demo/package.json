@@ -9,9 +9,9 @@
     "dev:client": "vite"
   },
   "dependencies": {
-    "@meridian-sync/client": "workspace:*",
-    "@meridian-sync/server": "workspace:*",
-    "@meridian-sync/shared": "workspace:*",
+    "meridian-client": "workspace:*",
+    "meridian-server": "workspace:*",
+    "meridian-shared": "workspace:*",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {

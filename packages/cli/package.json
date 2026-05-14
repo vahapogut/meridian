@@ -1,5 +1,5 @@
 {
-  "name": "meridian-cli",
+  "name": "meridiandb-cli",
   "version": "0.2.0",
   "description": "CLI tools for Meridian — migrate, inspect, replay, status",
   "main": "./dist/index.js",
@@ -13,8 +13,8 @@
     "dev": "tsup src/cli.ts --format esm --watch"
   },
   "dependencies": {
-    "@meridian-sync/server": "workspace:*",
-    "@meridian-sync/shared": "workspace:*",
+    "meridian-server": "workspace:*",
+    "meridian-shared": "workspace:*",
     "pg": "^8.13.0"
   },
   "devDependencies": {

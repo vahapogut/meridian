@@ -1,5 +1,5 @@
 {
-  "name": "@meridian-sync/server",
+  "name": "meridian-server",
   "version": "0.1.0",
   "description": "PostgreSQL sync server for Meridian — CRDT merge + WebSocket hub",
   "main": "./dist/index.js",
@@ -11,7 +11,7 @@
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
   },
   "dependencies": {
-    "@meridian-sync/shared": "workspace:*",
+    "meridian-shared": "workspace:*",
     "pg": "^8.13.0",
     "ws": "^8.18.0"
   },

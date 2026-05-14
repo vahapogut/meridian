@@ -1,4 +1,4 @@
-import { createClient, defineSchema, z, type ConnectionState, type PendingOp } from '@meridian-sync/client';
+import { createClient, defineSchema, z, type ConnectionState, type PendingOp } from 'meridian-client';
 
 // ─── Schema Definition ───────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createServer, type MeridianServer } from '@meridian-sync/server';
-import { createClient, type MeridianClient } from '@meridian-sync/client';
-import { defineSchema, z, deriveKey, encryptValue, decryptValue } from '@meridian-sync/shared';
+import { createServer, type MeridianServer } from 'meridian-server';
+import { createClient, type MeridianClient } from 'meridian-client';
+import { defineSchema, z, deriveKey, encryptValue, decryptValue } from 'meridian-shared';
 import 'fake-indexeddb/auto';
 
 // ─── Test Schema ─────────────────────────────────────────────────────────────
@@ -435,7 +435,7 @@ describe('Meridian — Integration Tests', () => {
   // ─── Row-Level Permissions (no PG needed) ──────────────────────────────────
 
   describe('Permissions — RuleEvaluator', () => {
-    const { defineRules, RuleEvaluator } = require('@meridian-sync/shared');
+    const { defineRules, RuleEvaluator } = require('meridian-shared');
 
     it('should allow read when no rules defined (default open)', async () => {
       const evaluator = new RuleEvaluator({});

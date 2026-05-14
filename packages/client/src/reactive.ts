@@ -17,7 +17,7 @@
  */
 
 import type { MeridianStore } from './store.js';
-import type { HLC } from '@meridian-sync/shared';
+import type { HLC } from 'meridian-shared';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

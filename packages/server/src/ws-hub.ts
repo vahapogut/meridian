@@ -15,7 +15,7 @@ import type {
   ClientMessage,
   ServerMessage,
   ConnectionState,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

@@ -22,7 +22,7 @@ import type {
   ChangesMessage,
   FullSyncRequiredMessage,
   AuthExpiringMessage,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';
 import type { MeridianStore } from './store.js';
 
 export interface SyncConfig {

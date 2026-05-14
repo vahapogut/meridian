@@ -16,13 +16,13 @@
 import type {
   CRDTOperation, ServerChange, ConflictRecord,
   SchemaDefinition, CollectionSchema,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';
 import {
   createLWWMap, mergeLWWMaps, extractValues,
   extractMetadata, isDeleted, DELETED_FIELD,
   fieldTypeToSQL, getDefaults,
-} from '@meridian-sync/shared';
-import type { ConflictInfo } from '@meridian-sync/shared';
+} from 'meridian-shared';
+import type { ConflictInfo } from 'meridian-shared';
 
 // ─── Driver Interface ──────────────────────────────────────────────────────
 

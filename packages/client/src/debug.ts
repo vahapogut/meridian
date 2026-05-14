@@ -8,7 +8,7 @@
  * - Last sync time
  */
 
-import type { PendingOp, ConnectionState, ConflictRecord } from '@meridian-sync/shared';
+import type { PendingOp, ConnectionState, ConflictRecord } from 'meridian-shared';
 import type { MeridianStore } from './store.js';
 
 /**

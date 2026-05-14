@@ -58,7 +58,7 @@ function withDefault(field: FieldDefinition, defaultValue: unknown): FieldDefini
  *
  * Usage:
  * ```ts
- * import { z } from '@meridian-sync/shared';
+ * import { z } from 'meridian-shared';
  *
  * const fields = {
  *   id: z.string(),

@@ -6,9 +6,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@meridian-sync/client": "workspace:*",
-    "@meridian-sync/server": "workspace:*",
-    "@meridian-sync/shared": "workspace:*"
+    "meridian-client": "workspace:*",
+    "meridian-server": "workspace:*",
+    "meridian-shared": "workspace:*"
   },
   "devDependencies": {
     "fake-indexeddb": "^6.0.0",

@@ -6,7 +6,7 @@
  * Usage:
  * ```vue
  * <script setup>
- * import { useQuery, useMutation } from '@meridian-sync/vue';
+ * import { useQuery, useMutation } from 'meridian-vue';
  *
  * const todos = useQuery(db.todos.find());
  * const { put, update, remove } = useMutation(db.todos);
@@ -15,7 +15,7 @@
  */
 
 import { ref, watch, onMounted, onUnmounted, shallowRef, type Ref } from 'vue';
-import type { MeridianClient, Query, CollectionProxy, LiveQueryOptions } from '@meridian-sync/client';
+import type { MeridianClient, Query, CollectionProxy, LiveQueryOptions } from 'meridian-client';
 
 // ─── useQuery ──────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 /**
- * @meridian-sync/react — React hooks for Meridian
+ * meridian-react — React hooks for Meridian
  *
  * @packageDocumentation
  */

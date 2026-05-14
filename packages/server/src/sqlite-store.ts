@@ -23,7 +23,7 @@ import type {
   ConflictRecord,
   SchemaDefinition,
   CollectionSchema,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';
 import {
   createLWWMap,
   mergeLWWMaps,
@@ -33,8 +33,8 @@ import {
   DELETED_FIELD,
   fieldTypeToSQL,
   getDefaults,
-} from '@meridian-sync/shared';
-import type { StorageAdapterConfig, ConflictInfo } from '@meridian-sync/shared';
+} from 'meridian-shared';
+import type { StorageAdapterConfig, ConflictInfo } from 'meridian-shared';
 
 // ─── Driver Interface ────────────────────────────────────────────────────────
 

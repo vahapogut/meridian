@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { createServer, defineSchema, z } from '@meridian-sync/server';
+import { createServer, defineSchema, z } from 'meridian-server';
 
 // ─── Schema Definition ───────────────────────────────────────────────────────
 // Must match the client exactly

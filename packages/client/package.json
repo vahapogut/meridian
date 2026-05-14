@@ -1,5 +1,5 @@
 {
-  "name": "@meridian-sync/client",
+  "name": "meridian-client",
   "version": "0.1.0",
   "description": "Local-first sync client for Meridian — IndexedDB + WebSocket + CRDT",
   "main": "./dist/index.js",
@@ -11,7 +11,7 @@
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch"
   },
   "dependencies": {
-    "@meridian-sync/shared": "workspace:*",
+    "meridian-shared": "workspace:*",
     "idb": "^8.0.0"
   },
   "devDependencies": {

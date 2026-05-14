@@ -16,8 +16,8 @@
  */
 
 import { parseArgs } from 'node:util';
-import { createServer } from '@meridian-sync/server';
-import { defineSchema, z } from '@meridian-sync/shared';
+import { createServer } from 'meridian-server';
+import { defineSchema, z } from 'meridian-shared';
 import { Client } from 'pg';
 
 const USAGE = `

@@ -11,7 +11,7 @@
  * - Faster recovery after compaction gaps
  */
 
-import type { ServerChange, SchemaDefinition } from '@meridian-sync/shared';
+import type { ServerChange, SchemaDefinition } from 'meridian-shared';
 import type { MySQLPool } from './mysql-store.js';
 import type { PgStore } from './pg-store.js';
 

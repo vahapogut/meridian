@@ -15,7 +15,7 @@ export {
   type ConnectionState,
   type PendingOp,
   type ConflictRecord,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';
 
 // Internal (for advanced use cases)
 export { MeridianStore } from './store.js';

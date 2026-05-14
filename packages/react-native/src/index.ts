@@ -1,16 +1,16 @@
 /**
- * @meridian-sync/react-native — React Native client for Meridian
+ * meridian-react-native — React Native client for Meridian
  *
  * @packageDocumentation
  *
- * Drop-in replacement for @meridian-sync/client that works in
+ * Drop-in replacement for meridian-client that works in
  * React Native environments. Replaces IndexedDB with AsyncStorage,
  * drops BroadcastChannel (mobile apps are single-instance), and
  * provides the same reactive hooks API.
  *
  * Usage:
  * ```tsx
- * import { createRNClient, useQuery, useMutation } from '@meridian-sync/react-native';
+ * import { createRNClient, useQuery, useMutation } from 'meridian-react-native';
  *
  * const db = createRNClient({
  *   schema,
@@ -27,7 +27,7 @@
 // Client
 export { createRNClient, type RNClientConfig, type RNClient } from './rn-client.js';
 
-// React hooks (same API as @meridian-sync/react)
+// React hooks (same API as meridian-react)
 export {
   useQuery,
   useQueryOptimized,
@@ -46,4 +46,4 @@ export {
   type ConnectionState,
   type PendingOp,
   type ConflictRecord,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';

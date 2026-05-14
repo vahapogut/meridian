@@ -23,4 +23,4 @@ export {
   type CRDTOperation,
   type ServerChange,
   type ConflictRecord,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';

@@ -13,8 +13,8 @@ import type {
   CRDTOperation,
   ServerChange,
   ConflictRecord,
-} from '@meridian-sync/shared';
-import { RuleEvaluator, type PermissionRules, type AuthContext } from '@meridian-sync/shared';
+} from 'meridian-shared';
+import { RuleEvaluator, type PermissionRules, type AuthContext } from 'meridian-shared';
 import type { PgStore } from './pg-store.js';
 import type { WsHub, ConnectedClient } from './ws-hub.js';
 

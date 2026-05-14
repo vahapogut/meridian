@@ -14,7 +14,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react';
-import type { MeridianClient, Query, CollectionProxy, LiveQueryOptions } from '@meridian-sync/client';
+import type { MeridianClient, Query, CollectionProxy, LiveQueryOptions } from 'meridian-client';
 
 // ─── useStore (internal) ────────────────────────────────────────────────────
 

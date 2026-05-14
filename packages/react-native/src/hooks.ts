@@ -1,7 +1,7 @@
 /**
  * Meridian React Native Hooks
  *
- * Same API as @meridian-sync/react, optimized for React Native.
+ * Same API as meridian-react, optimized for React Native.
  * No DOM-specific APIs used — fully compatible with RN's render lifecycle.
  */
 

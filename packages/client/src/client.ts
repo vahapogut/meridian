@@ -6,7 +6,7 @@
  *
  * Usage:
  * ```ts
- * import { createClient, defineSchema, z } from '@meridian-sync/client';
+ * import { createClient, defineSchema, z } from 'meridian-client';
  *
  * const schema = defineSchema({
  *   version: 1,
@@ -38,7 +38,7 @@ import {
   type PendingOp,
   HLC,
   generateNodeId,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';
 import { MeridianStore } from './store.js';
 import { SyncEngine } from './sync.js';
 import { CollectionProxy } from './reactive.js';

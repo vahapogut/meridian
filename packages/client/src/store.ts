@@ -26,7 +26,7 @@ import {
   getDefaults,
   encryptFields,
   decryptFields,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';
 
 const DB_NAME_PREFIX = 'meridian';
 const META_STORE = '_meridian_meta';

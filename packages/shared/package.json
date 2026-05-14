@@ -1,5 +1,5 @@
 {
-  "name": "@meridian-sync/shared",
+  "name": "meridian-shared",
   "version": "0.1.0",
   "description": "Shared CRDT primitives for Meridian sync engine",
   "main": "./dist/index.js",

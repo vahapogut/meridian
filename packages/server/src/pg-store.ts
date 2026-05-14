@@ -26,7 +26,7 @@ import {
   isDeleted,
   DELETED_FIELD,
   ConflictRecord,
-} from '@meridian-sync/shared';
+} from 'meridian-shared';
 
 const { Pool } = pg;
 

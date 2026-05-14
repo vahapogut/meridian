@@ -14,7 +14,7 @@
  * 5. Leader calls beforeunload to resign gracefully
  */
 
-import type { TabMessage } from '@meridian-sync/shared';
+import type { TabMessage } from 'meridian-shared';
 
 const CHANNEL_NAME = 'meridian-sync';
 const HEARTBEAT_INTERVAL = 2000;

@@ -9,8 +9,8 @@
  * - Same reactive API as the browser client
  */
 
-import type { SchemaDefinition, ConnectionState, PendingOp, ConflictRecord } from '@meridian-sync/shared';
-import { HLC, generateNodeId } from '@meridian-sync/shared';
+import type { SchemaDefinition, ConnectionState, PendingOp, ConflictRecord } from 'meridian-shared';
+import { HLC, generateNodeId } from 'meridian-shared';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 

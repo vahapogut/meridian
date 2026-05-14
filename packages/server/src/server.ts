@@ -10,8 +10,8 @@
  *
  * Usage:
  * ```ts
- * import { createServer } from '@meridian-sync/server';
- * import { defineSchema, z } from '@meridian-sync/shared';
+ * import { createServer } from 'meridian-server';
+ * import { defineSchema, z } from 'meridian-shared';
  *
  * const schema = defineSchema({
  *   version: 1,
@@ -30,7 +30,7 @@
  * ```
  */
 
-import type { SchemaDefinition, ConflictRecord, PermissionRules } from '@meridian-sync/shared';
+import type { SchemaDefinition, ConflictRecord, PermissionRules } from 'meridian-shared';
 import { PgStore } from './pg-store.js';
 import { WsHub, type AuthResult } from './ws-hub.js';
 import { MergeEngine } from './merge.js';

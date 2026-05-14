@@ -4,7 +4,7 @@
  * Abstract storage interface enabling multiple database backends.
  *
  * Currently implemented:
- * - PostgreSQL (via PgStore in @meridian-sync/server)
+ * - PostgreSQL (via PgStore in meridian-server)
  *
  * V2 Roadmap:
  * - SQLite (Turso / libsql)

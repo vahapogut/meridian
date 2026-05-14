@@ -22,9 +22,9 @@
 
 | Package | Version | Description |
 |---------|---------|-------------|
-| `@meridian-sync/shared` | 0.1.0 | CRDT primitives, HLC, protocol, schema, permissions |
-| `@meridian-sync/client` | 0.1.0 | IndexedDB store, WebSocket sync, reactive queries, multi-tab |
-| `@meridian-sync/server` | 0.1.0 | PostgreSQL sync server, CRDT merge, WebSocket hub |
+| `meridian-shared` | 0.1.0 | CRDT primitives, HLC, protocol, schema, permissions |
+| `meridian-client` | 0.1.0 | IndexedDB store, WebSocket sync, reactive queries, multi-tab |
+| `meridian-server` | 0.1.0 | PostgreSQL sync server, CRDT merge, WebSocket hub |
 | `meridian` (root) | 0.1.0 | Monorepo workspace |
 
 ---

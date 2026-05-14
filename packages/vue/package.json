@@ -1,5 +1,5 @@
 {
-  "name": "@meridian-sync/vue",
+  "name": "meridian-vue",
   "version": "0.5.0",
   "description": "Vue 3 composables for Meridian — useQuery, useLiveQuery, useDoc, useSync, useMutation",
   "main": "./dist/index.js",
@@ -14,8 +14,8 @@
     "vue": "^3.3.0"
   },
   "dependencies": {
-    "@meridian-sync/client": "workspace:*",
-    "@meridian-sync/shared": "workspace:*"
+    "meridian-client": "workspace:*",
+    "meridian-shared": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

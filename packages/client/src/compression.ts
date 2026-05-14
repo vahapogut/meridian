@@ -13,7 +13,7 @@
  * ```
  */
 
-import type { CRDTOperation, PendingOp } from '@meridian-sync/shared';
+import type { CRDTOperation, PendingOp } from 'meridian-shared';
 
 export interface CompressionConfig {
   /** Debounce window in ms — ops to the same field within this window are merged */
