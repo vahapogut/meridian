@@ -19,6 +19,8 @@
   <img src="https://img.shields.io/badge/Local--First-Success?style=flat&color=10b981" alt="Local-First">
   <img src="https://img.shields.io/badge/tests-48_passed-brightgreen" alt="Tests: 48 passed">
   <img src="https://img.shields.io/badge/benchmarks-20M_ops%2Fs-blue" alt="Benchmarks">
+  <img src="https://img.shields.io/badge/React-hooks-blue?logo=react" alt="React">
+  <img src="https://img.shields.io/badge/E2E-encrypted-green" alt="E2E Encryption">
 </p>
 
 <p align="center">
@@ -101,6 +103,10 @@ Meridian solves this by abstracting the entire sync layer into a single, cohesiv
 * **Storage Adapter Interface (V2):** Abstract `StorageAdapter` interface enabling PostgreSQL, SQLite (Turso), and MySQL backends.
 * **Message Validation:** All incoming WebSocket messages are validated against known types — malformed data is rejected early.
 * **IndexedDB Quota Handling:** Graceful error reporting when browser storage limits are exceeded.
+* **React Hooks:** `useQuery`, `useLiveQuery`, `useDoc`, `useSync`, `usePresence`, `useMutation` — zero boilerplate React integration.
+* **E2E Encryption:** AES-256-GCM field-level encryption. IndexedDB at-rest + WebSocket in-transit. Server stores only ciphertext.
+* **CLI Tools:** `meridian migrate`, `inspect`, `replay`, `status`, `compact` — manage sync infrastructure from the command line.
+* **WAL Streaming:** PostgreSQL LISTEN/NOTIFY + logical replication for real-time change data capture at scale.
 
 ## Quick Start
 
@@ -167,6 +173,36 @@ const db = createClient({
 db.issues.find().subscribe(issues => console.log(issues));
 ```
 
+### 5. React Integration (Optional)
+
+```tsx
+import { useQuery, useLiveQuery, useMutation } from '@meridian-sync/react';
+
+function TodoList() {
+  const todos = useQuery(db.todos.find());
+  const { put, update, remove } = useMutation(db.todos);
+
+  if (!todos) return <p>Loading...</p>;
+
+  return todos.map(todo => (
+    <div key={todo.id}>
+      <span>{todo.title}</span>
+      <button onClick={() => update(todo.id, { done: !todo.done })}>
+        {todo.done ? 'Undo' : 'Done'}
+      </button>
+    </div>
+  ));
+}
+```
+
+### 6. CLI Management
+
+```bash
+npx meridian-cli status   --url wss://api.example.com/sync
+npx meridian-cli inspect  --db postgresql://... --collection todos
+npx meridian-cli compact  --db postgresql://... --max-age 30
+```
+
 ## How it Works (Under the Hood)
 
 For the curious engineers, Meridian is built on robust distributed systems principles.
@@ -191,11 +227,17 @@ Meridian is evolving to become the ultimate infra product for local-first develo
 - [x] **Comprehensive Tests:** 48 unit tests covering HLC and CRDT modules.
 - [x] **Performance Benchmarks:** 20M HLC ops/s, 3M LWWMap creates/s, 580K ops/s throughput.
 
+### Done in v0.3.0
+- [x] **React Hooks:** `useQuery`, `useLiveQuery`, `useDoc`, `useSync`, `usePresence`, `useMutation`.
+- [x] **E2E Encryption:** AES-256-GCM field-level encryption for IndexedDB + WebSocket.
+- [x] **CLI Tools:** `meridian migrate`, `inspect`, `replay`, `status`, `compact`.
+- [x] **WAL Streaming:** PostgreSQL LISTEN/NOTIFY + logical replication polling consumer.
+
 ### Coming Next
 - [ ] **SQLite Adapter:** Full SQLite/Turso implementation of the StorageAdapter interface.
-- [ ] **Sync Compression:** Debouncing typing operations in the offline queue to reduce network traffic.
-- [ ] **WAL-Based Streaming:** PostgreSQL logical replication integration for massive scale.
+- [ ] **Sync Compression:** Debouncing typing operations in the offline queue.
 - [ ] **MySQL Adapter:** MySQL implementation of the StorageAdapter interface.
+- [ ] **Vue/Svelte hooks:** Framework support beyond React.
 
 ## Performance
 
