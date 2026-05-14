@@ -50,7 +50,7 @@ No offline queue implementation.
 No cache invalidation headaches.
 
 <p align="center">
-  <img src="./assets/demo-ui.png" alt="Meridian Glassmorphism UI in action" width="800" />
+  <b>Live demo:</b> <a href="https://meridiandb-demo.vercel.app">meridiandb-demo.vercel.app</a> — open in two tabs to see real-time sync.
 </p>
 
 ## The Meridian DX
