@@ -29,7 +29,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vahapogut/meridian"
+    "url": "https://github.com/vahapogut/MeridianDB"
   },
   "keywords": ["react", "hooks", "meridian", "sync", "local-first", "realtime", "crdt"],
   "author": "Abdulvahap OGUT <info@ipeclabs.com>"

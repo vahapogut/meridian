@@ -19,9 +19,9 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vahapogut/meridian"
+    "url": "https://github.com/vahapogut/MeridianDB"
   },
-  "homepage": "https://github.com/vahapogut/meridian#readme",
+  "homepage": "https://github.com/vahapogut/MeridianDB#readme",
   "keywords": ["crdt", "hlc", "sync", "local-first", "offline-first", "realtime", "lww"],
   "author": "Abdulvahap OGUT <info@ipeclabs.com>"
 }

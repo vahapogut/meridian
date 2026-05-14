@@ -27,7 +27,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vahapogut/meridian"
+    "url": "https://github.com/vahapogut/MeridianDB"
   },
   "keywords": ["meridian", "cli", "sync", "migrate", "inspect", "replay"],
   "author": "Abdulvahap OGUT <info@ipeclabs.com>"
