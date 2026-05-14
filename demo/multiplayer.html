@@ -3,215 +3,439 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meridian — Multiplayer Demo</title>
+<title>Meridian — Real-Time Collaborative Demo</title>
 <style>
+  :root {
+    --bg: #09090b; --panel: #18181b; --border: #27272a; --text: #fafafa;
+    --muted: #a1a1aa; --accent: #3b82f6; --green: #22c55e; --red: #ef4444;
+    --amber: #f59e0b; --alice: #8b5cf6; --bob: #ec4899;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-  .container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
-  h1 { font-size: 2rem; margin-bottom: 8px; }
-  .subtitle { color: #94a3b8; margin-bottom: 32px; }
-  .clients { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  .client { background: #1e293b; border-radius: 12px; padding: 24px; border: 2px solid #334155; }
-  .client.active { border-color: #3b82f6; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  .container { max-width: 1300px; margin: 0 auto; padding: 24px; }
+
+  header { text-align: center; padding: 40px 0 24px; }
+  header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; }
+  header h1 span { background: linear-gradient(135deg, var(--accent), var(--alice)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  header p { color: var(--muted); margin-top: 8px; font-size: 1rem; }
+
+  .metrics { display: flex; justify-content: center; gap: 32px; margin: 20px 0; flex-wrap: wrap; }
+  .metric { text-align: center; padding: 12px 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; min-width: 90px; }
+  .metric .val { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .metric .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric .val.green { color: var(--green); }
+  .metric .val.amber { color: var(--amber); }
+  .metric .val.accent { color: var(--accent); }
+
+  .clients { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+  .client { background: var(--panel); border: 2px solid var(--border); border-radius: 14px; padding: 24px; transition: border-color 0.3s; }
+  .client.connected { border-color: var(--green); }
+  .client.offline { border-color: var(--red); opacity: 0.85; }
+  .client.syncing { border-color: var(--accent); animation: syncPulse 0.8s; }
+
+  @keyframes syncPulse { 0%,100%{border-color:var(--accent)} 50%{border-color:var(--green);box-shadow:0 0 20px rgba(34,197,94,.15)} }
+
   .client-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .client-name { font-weight: 700; font-size: 1.1rem; }
-  .status { font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; background: #334155; }
-  .status.online { background: #065f46; color: #6ee7b7; }
-  .status.offline { background: #7f1d1d; color: #fca5a5; }
-  .status.syncing { background: #78350f; color: #fcd34d; }
-  .doc { background: #0f172a; border-radius: 8px; padding: 16px; }
-  .field { margin-bottom: 12px; }
-  .field label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
-  .field input { width: 100%; padding: 8px 12px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; color: #e2e8f0; font-size: 0.95rem; }
-  .field input:focus { outline: none; border-color: #3b82f6; }
-  .conflict-badge { background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; animation: pulse 1s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  .merge-log { grid-column: 1 / -1; background: #1e293b; border-radius: 12px; padding: 16px; max-height: 200px; overflow-y: auto; }
-  .merge-log h3 { margin-bottom: 8px; }
-  .log-entry { font-family: monospace; font-size: 0.85rem; padding: 4px 0; border-bottom: 1px solid #334155; }
-  .log-entry .winner { color: #6ee7b7; }
-  .log-entry .loser { color: #fca5a5; }
-  .actions { margin-top: 20px; display: flex; gap: 12px; }
-  button { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
-  .btn-sync { background: #3b82f6; color: white; }
-  .btn-sync:hover { background: #2563eb; }
-  .btn-offline { background: #ef4444; color: white; }
-  .btn-reconnect { background: #10b981; color: white; }
-  .btn-conflict { background: #f59e0b; color: #0f172a; }
+  .client-id { display: flex; align-items: center; gap: 8px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; color: white; }
+  .avatar.alice { background: var(--alice); } .avatar.bob { background: var(--bob); }
+  .status-badge { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; font-weight: 600; }
+  .status-badge.online { background: #065f4640; color: var(--green); border: 1px solid #065f4680; }
+  .status-badge.offline { background: #7f1d1d40; color: var(--red); border: 1px solid #7f1d1d80; }
+  .status-badge.syncing { background: #78350f40; color: var(--amber); border: 1px solid #78350f80; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .status-dot.online { background: var(--green); }
+  .status-dot.offline { background: var(--red); }
+  .status-dot.syncing { background: var(--amber); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .doc { display: flex; flex-direction: column; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .field input, .field select { padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.95rem; transition: border-color 0.2s; width: 100%; }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+  .field input.changed { border-color: var(--amber); animation: changedFlash 0.6s; }
+  .field input.merged { border-color: var(--green); animation: changedFlash 0.6s; }
+  @keyframes changedFlash { 0%{border-color:var(--amber)} 100%{border-color:var(--border)} }
+
+  .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  button { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; font-weight: 600; font-size: 0.85rem; background: var(--bg); color: var(--text); transition: all 0.15s; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  button.primary:hover { background: #2563eb; }
+  button.danger { background: var(--red); color: white; border-color: var(--red); }
+  button.danger:hover { background: #dc2626; }
+  button.success { background: var(--green); color: white; border-color: var(--green); }
+
+  .log-panel { margin-top: 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .log-panel h3 { font-size: 0.9rem; margin-bottom: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .log-entries { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .log-entry { font-family: 'JetBrains Mono', 'Cascadia Code', monospace; font-size: 0.8rem; padding: 8px 12px; background: var(--bg); border-radius: 6px; display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+  .log-entry .ts { color: var(--muted); font-size: 0.7rem; min-width: 80px; }
+  .log-entry .icon { font-size: 1rem; min-width: 20px; text-align: center; }
+  .log-entry .icon.merge { color: var(--accent); }
+  .log-entry .icon.conflict { color: var(--red); }
+  .log-entry .icon.sync { color: var(--green); }
+  .log-entry .details { color: var(--text); }
+  .log-entry .details .hl { color: var(--amber); }
+
+  .queue-indicator { position: absolute; top: 16px; right: 16px; background: var(--red); color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; animation: pulse 1s infinite; display: none; }
+  .queue-indicator.show { display: inline-block; }
+
+  .conflict-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--red); color: white; padding: 10px 24px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; z-index: 100; animation: toastIn 0.3s; box-shadow: 0 4px 20px rgba(239,68,68,.3); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+  @media (max-width: 900px) { .clients { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
+
 <div class="container">
-  <h1>Meridian Multiplayer Sync</h1>
-  <p class="subtitle">Two clients editing the same document. Field-level CRDT in action.</p>
+  <header>
+    <h1>Meridian <span>Multiplayer Sync</span></h1>
+    <p>Field-level CRDT merge engine in action — two clients, one document, zero data loss.</p>
+
+    <div class="metrics">
+      <div class="metric"><div class="val accent" id="metric-ops">0</div><div class="lbl">Total Syncs</div></div>
+      <div class="metric"><div class="val" id="metric-conflicts">0</div><div class="lbl">Conflicts Resolved</div></div>
+      <div class="metric"><div class="val green" id="metric-latency">0<span style="font-size:0.7rem">ms</span></div><div class="lbl">Merge Latency</div></div>
+      <div class="metric"><div class="val" id="metric-pending">0</div><div class="lbl">Pending Ops</div></div>
+    </div>
+  </header>
 
   <div class="clients">
-    <!-- Client A -->
-    <div class="client active" id="client-a">
+    <!-- Alice -->
+    <div class="client connected" id="client-a">
       <div class="client-header">
-        <span class="client-name">Alice (Client A)</span>
-        <span class="status online" id="status-a">Online</span>
+        <div class="client-id">
+          <div class="avatar alice">A</div>
+          <strong>Alice</strong>
+        </div>
+        <div class="status-badge online" id="status-a">
+          <span class="status-dot online"></span> Online
+        </div>
       </div>
       <div class="doc">
-        <div class="field"><label>Title</label><input id="title-a" value="Hello Meridian" /></div>
-        <div class="field"><label>Status</label><input id="status-val-a" value="draft" /></div>
-        <div class="field"><label>Priority</label><input id="priority-a" type="number" value="1" /></div>
+        <div class="field"><label>Title</label><input id="a-title" value="Q3 Product Roadmap" class="doc-field" data-field="title"></div>
+        <div class="field"><label>Status</label>
+          <select id="a-status" class="doc-field" data-field="status">
+            <option value="draft" selected>Draft</option>
+            <option value="review">In Review</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="field"><label>Priority</label><input id="a-priority" type="number" value="3" min="1" max="5" class="doc-field" data-field="priority"></div>
+        <div class="field"><label>Owner</label><input id="a-owner" value="alice@acme.com" class="doc-field" data-field="owner"></div>
       </div>
       <div class="actions">
-        <button class="btn-offline" onclick="toggleOffline('a')">Go Offline</button>
-        <button class="btn-conflict" onclick="simulateConflict()">Simulate Conflict</button>
+        <button class="danger" id="btn-offline-a" onclick="toggleOffline('a')">Go Offline</button>
+        <button onclick="simulateConflict()">Trigger Conflict</button>
+        <button onclick="rapidEdits()">Rapid Edits</button>
       </div>
-      <div id="conflict-a"></div>
+      <div class="queue-indicator" id="queue-a">3 queued</div>
     </div>
 
-    <!-- Client B -->
-    <div class="client active" id="client-b">
+    <!-- Bob -->
+    <div class="client connected" id="client-b">
       <div class="client-header">
-        <span class="client-name">Bob (Client B)</span>
-        <span class="status online" id="status-b">Online</span>
+        <div class="client-id">
+          <div class="avatar bob">B</div>
+          <strong>Bob</strong>
+        </div>
+        <div class="status-badge online" id="status-b">
+          <span class="status-dot online"></span> Online
+        </div>
       </div>
       <div class="doc">
-        <div class="field"><label>Title</label><input id="title-b" value="Hello Meridian" /></div>
-        <div class="field"><label>Status</label><input id="status-val-b" value="draft" /></div>
-        <div class="field"><label>Priority</label><input id="priority-b" type="number" value="1" /></div>
+        <div class="field"><label>Title</label><input id="b-title" value="Q3 Product Roadmap" class="doc-field" data-field="title"></div>
+        <div class="field"><label>Status</label>
+          <select id="b-status" class="doc-field" data-field="status">
+            <option value="draft" selected>Draft</option>
+            <option value="review">In Review</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="field"><label>Priority</label><input id="b-priority" type="number" value="3" min="1" max="5" class="doc-field" data-field="priority"></div>
+        <div class="field"><label>Owner</label><input id="b-owner" value="bob@acme.com" class="doc-field" data-field="owner"></div>
       </div>
       <div class="actions">
-        <button class="btn-offline" onclick="toggleOffline('b')">Go Offline</button>
-        <button class="btn-conflict" onclick="simulateConflict()">Simulate Conflict</button>
+        <button class="danger" id="btn-offline-b" onclick="toggleOffline('b')">Go Offline</button>
+        <button onclick="simulateConflict()">Trigger Conflict</button>
+        <button onclick="rapidEdits()">Rapid Edits</button>
       </div>
-      <div id="conflict-b"></div>
+      <div class="queue-indicator" id="queue-b">3 queued</div>
     </div>
+  </div>
 
-    <!-- Merge Log -->
-    <div class="merge-log" id="merge-log">
-      <h3>Merge Log (Field-Level CRDT)</h3>
-      <div id="log-entries">
-        <div class="log-entry" style="color:#94a3b8">Waiting for edits...</div>
+  <!-- Merge Log -->
+  <div class="log-panel">
+    <h3>Merge Log — Field-Level CRDT in Action</h3>
+    <div class="log-entries" id="log-entries">
+      <div class="log-entry">
+        <span class="ts">--:--:--</span>
+        <span class="icon merge">●</span>
+        <span class="details">Engine initialized. Field-level LWW CRDT + HLC active.</span>
       </div>
     </div>
   </div>
+
+  <div id="toast-container"></div>
 </div>
 
 <script>
-// Simulated Meridian-style field-level CRDT merge
-// This demonstrates the core concept without needing a running server
+// ─── Meridian CRDT Engine (In-Browser Simulation) ──────────────────────────
 
-const docState = {
-  title: { value: 'Hello Meridian', hlc: Date.now(), node: 'server' },
-  status: { value: 'draft', hlc: Date.now(), node: 'server' },
-  priority: { value: 1, hlc: Date.now(), node: 'server' },
+const ENGINE = {
+  state: {},  // field → { value, hlc, node }
+
+  merge(field, value, hlc, node) {
+    const current = this.state[field];
+    const startTime = performance.now();
+
+    if (!current || hlc > current.hlc || (hlc === current.hlc && node > current.node)) {
+      const old = current ? { ...current } : null;
+      this.state[field] = { value, hlc, node };
+      const elapsed = (performance.now() - startTime).toFixed(1);
+
+      if (old && old.value !== value) {
+        this.log('conflict', field, `Resolved: <span class="hl">"${old.value}"</span> → <span class="hl">"${value}"</span> (HLC ${hlc} > ${old.hlc})`);
+        this.metrics.conflicts++;
+        showToast(`Conflict on "${field}": "${old.value}" → "${value}" (field-level merge)`);
+      } else if (old && old.value === value) {
+        this.log('merge', field, `No-op: values identical`);
+      } else {
+        this.log('merge', field, `Set: <span class="hl">"${value}"</span>`);
+      }
+
+      this.metrics.ops++;
+      this.metrics.lastLatency = parseFloat(elapsed);
+      return true;
+    }
+    this.log('merge', field, `Rejected: HLC ${hlc} ≤ current ${current.hlc}`);
+    return false;
+  },
+
+  log(type, field, msg) {
+    const el = document.getElementById('log-entries');
+    const now = new Date().toLocaleTimeString();
+    const icons = { merge: '●', conflict: '⚠', sync: '✓' };
+    const colors = { merge: 'merge', conflict: 'conflict', sync: 'sync' };
+
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `
+      <span class="ts">${now}</span>
+      <span class="icon ${colors[type]}">${icons[type]}</span>
+      <span class="details">[${field}] ${msg}</span>
+    `;
+    el.insertBefore(entry, el.firstChild);
+
+    // Limit log entries
+    while (el.children.length > 50) el.lastChild.remove();
+  },
+
+  metrics: { ops: 0, conflicts: 0, lastLatency: 0 }
 };
 
-const clients = {
-  a: { name: 'Alice', nodeId: 'alice-node', offline: false, hlcOffset: 0 },
-  b: { name: 'Bob', nodeId: 'bob-node', offline: false, hlcOffset: 1 },
+// Initialize document state
+const BASE_HLC = Date.now();
+ENGINE.merge('title', 'Q3 Product Roadmap', BASE_HLC, 'server');
+ENGINE.merge('status', 'draft', BASE_HLC + 1, 'server');
+ENGINE.merge('priority', 3, BASE_HLC + 2, 'server');
+ENGINE.merge('owner', 'alice@acme.com', BASE_HLC + 3, 'server');
+ENGINE.merge('owner', 'bob@acme.com', BASE_HLC + 4, 'server'); // Bob's field wins
+
+// ─── Client Management ─────────────────────────────────────────────────────
+
+const CLIENTS = {
+  a: { node: 'alice-node', offline: false, hlcOffset: 1000, pending: 0 },
+  b: { node: 'bob-node', offline: false, hlcOffset: 2000, pending: 0 },
 };
 
-function logMerge(field, winner, loser) {
-  const el = document.getElementById('log-entries');
-  const entry = document.createElement('div');
-  entry.className = 'log-entry';
-  entry.innerHTML = `<span class="winner">✓ ${field}: "${winner.value}"</span> won over <span class="loser">"${loser.value}"</span> (HLC: ${winner.hlc} > ${loser.hlc})`;
-  el.insertBefore(entry, el.firstChild);
+function getClientFields(id) {
+  const prefix = id === 'a' ? 'a-' : 'b-';
+  const fields = {};
+  document.querySelectorAll(`#client-${id} .doc-field`).forEach(el => {
+    fields[el.dataset.field] = el;
+  });
+  return fields;
 }
 
-function mergeField(field, clientField, clientNode, clientHLC) {
-  const current = docState[field];
-  if (clientHLC > current.hlc || (clientHLC === current.hlc && clientNode > current.node)) {
-    const old = { ...current };
-    docState[field] = { value: clientField, hlc: clientHLC, node: clientNode };
-    logMerge(field, docState[field], old);
-    return true;
+function syncClient(id) {
+  const c = CLIENTS[id];
+  if (c.offline) {
+    c.pending++;
+    updatePendingBadge(id);
+    return;
   }
-  return false;
-}
 
-function syncClient(clientId) {
-  const c = clients[clientId];
-  if (c.offline) return;
+  const fields = getClientFields(id);
+  c.hlcOffset += 1;
+  let synced = 0;
 
-  const titleEl = document.getElementById(`title-${clientId}`);
-  const statusEl = document.getElementById(`status-val-${clientId}`);
-  const priorityEl = document.getElementById(`priority-${clientId}`);
+  for (const [field, el] of Object.entries(fields)) {
+    const value = el.tagName === 'SELECT' ? el.value : (el.type === 'number' ? parseInt(el.value) : el.value);
+    const hlc = c.hlcOffset + synced * 10;
 
-  c.hlcOffset += 10;
-  const hlc = c.hlcOffset;
+    if (ENGINE.merge(field, value, hlc, c.node)) {
+      el.classList.add('merged');
+      setTimeout(() => el.classList.remove('merged'), 600);
+      synced++;
+    }
+  }
 
-  const changed = [];
-  if (mergeField('title', titleEl.value, c.nodeId, hlc)) changed.push('title');
-  if (mergeField('status', statusEl.value, c.nodeId, hlc+1)) changed.push('status');
-  if (mergeField('priority', parseInt(priorityEl.value), c.nodeId, hlc+2)) changed.push('priority');
-
-  // Update both clients with the merged state
-  updateUI();
-  return changed;
-}
-
-function updateUI() {
-  for (const id of ['a', 'b']) {
-    document.getElementById(`title-${id}`).value = docState.title.value;
-    document.getElementById(`status-val-${id}`).value = docState.status.value;
-    document.getElementById(`priority-${id}`).value = docState.priority.value;
+  // Push changes to the other client
+  if (synced > 0) {
+    const other = id === 'a' ? 'b' : 'a';
+    if (!CLIENTS[other].offline) {
+      setTimeout(() => updateClientUI(other), 100);
+    }
+    updateClientUI(id);
+    updateMetrics();
   }
 }
 
-function toggleOffline(clientId) {
-  const c = clients[clientId];
+function updateClientUI(id) {
+  const fields = getClientFields(id);
+  for (const [field, el] of Object.entries(fields)) {
+    const state = ENGINE.state[field];
+    if (!state) continue;
+    const currentVal = el.tagName === 'SELECT' ? el.value : (el.type === 'number' ? parseInt(el.value) : el.value);
+    if (currentVal !== state.value) {
+      if (el.tagName === 'SELECT') {
+        el.value = state.value;
+      } else {
+        el.value = state.value;
+      }
+      el.classList.add('changed');
+      setTimeout(() => el.classList.remove('changed'), 600);
+    }
+  }
+}
+
+function toggleOffline(id) {
+  const c = CLIENTS[id];
   c.offline = !c.offline;
 
-  const statusEl = document.getElementById(`status-${clientId}`);
-  const clientEl = document.getElementById(`client-${clientId}`);
-  const btn = clientEl.querySelector('.btn-offline');
+  const clientEl = document.getElementById(`client-${id}`);
+  const statusEl = document.getElementById(`status-${id}`);
+  const btn = document.getElementById(`btn-offline-${id}`);
+  const queueEl = document.getElementById(`queue-${id}`);
 
   if (c.offline) {
-    statusEl.textContent = 'Offline';
-    statusEl.className = 'status offline';
-    clientEl.classList.remove('active');
+    clientEl.className = 'client offline';
+    statusEl.className = 'status-badge offline';
+    statusEl.innerHTML = '<span class="status-dot offline"></span> Offline';
     btn.textContent = 'Reconnect';
-    btn.className = 'btn-reconnect';
+    btn.className = 'success';
+    queueEl.classList.add('show');
+    queueEl.textContent = 'Offline — queuing writes';
+    ENGINE.log('merge', `client-${id}`, 'Went offline — writes queued locally');
   } else {
-    statusEl.textContent = 'Syncing...';
-    statusEl.className = 'status syncing';
-    clientEl.classList.add('active');
+    clientEl.className = 'client syncing';
+    statusEl.className = 'status-badge syncing';
+    statusEl.innerHTML = '<span class="status-dot syncing"></span> Syncing...';
     btn.textContent = 'Go Offline';
-    btn.className = 'btn-offline';
-    syncClient(clientId);
+    btn.className = 'danger';
+    queueEl.classList.remove('show');
+    c.pending = 0;
+
+    ENGINE.log('sync', `client-${id}`, 'Reconnected — replaying offline queue');
+
+    // Sync and push pending changes
+    syncClient(id);
+
     setTimeout(() => {
-      statusEl.textContent = 'Online';
-      statusEl.className = 'status online';
-    }, 500);
+      clientEl.className = 'client connected';
+      statusEl.className = 'status-badge online';
+      statusEl.innerHTML = '<span class="status-dot online"></span> Online';
+      updateMetrics();
+    }, 400);
   }
 }
+
+function updatePendingBadge(id) {
+  const c = CLIENTS[id];
+  const queueEl = document.getElementById(`queue-${id}`);
+  if (c.pending > 0) {
+    queueEl.classList.add('show');
+    queueEl.textContent = `${c.pending} ops queued`;
+  } else {
+    queueEl.classList.remove('show');
+  }
+}
+
+// ─── Conflict Simulation ────────────────────────────────────────────────────
 
 function simulateConflict() {
-  // Both clients edit the SAME field concurrently
-  document.getElementById('title-a').value = 'Alice Edit';
-  document.getElementById('title-b').value = 'Bob Edit';
+  // Both clients edit the SAME field simultaneously
+  const titleA = document.getElementById('a-title');
+  const titleB = document.getElementById('b-title');
 
-  // Alice's edit wins (higher HLC)
-  clients.a.hlcOffset += 100;
-  const aliceChanged = syncClient('a');
+  titleA.value = 'Alice Edit (v2)';
+  titleB.value = 'Bob Edit (v2)';
 
-  // Bob's edit loses
-  clients.b.hlcOffset += 50;
-  const bobChanged = syncClient('b');
+  // Alice syncs with higher HLC → wins
+  CLIENTS.a.hlcOffset += 100;
+  syncClient('a');
 
-  // Show conflict badge momentarily
-  for (const id of ['a', 'b']) {
-    const badge = document.getElementById(`conflict-${id}`);
-    badge.innerHTML = '<span class="conflict-badge">Conflict Resolved</span>';
-    setTimeout(() => { badge.innerHTML = ''; }, 2000);
-  }
+  // Bob syncs with lower HLC → loses
+  CLIENTS.b.hlcOffset += 10;
+  syncClient('b');
+
+  showToast('Field-level conflict resolved: higher HLC wins, lower value preserved in log');
 }
 
-// Auto-sync on input
-for (const id of ['a', 'b']) {
-  ['title', 'status-val', 'priority'].forEach(field => {
-    document.getElementById(`${field}-${id}`).addEventListener('input', () => {
-      syncClient(id);
-    });
+function rapidEdits() {
+  const titleA = document.getElementById('a-title');
+  const base = titleA.value;
+  const edits = ['v1', 'v2', 'v3', 'final'];
+
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i >= edits.length) { clearInterval(interval); return; }
+    titleA.value = base + ' — ' + edits[i];
+    syncClient('a');
+    i++;
+  }, 200);
+}
+
+function showToast(msg) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'conflict-toast';
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+// ─── Metrics ────────────────────────────────────────────────────────────────
+
+function updateMetrics() {
+  document.getElementById('metric-ops').textContent = ENGINE.metrics.ops;
+  document.getElementById('metric-conflicts').textContent = ENGINE.metrics.conflicts;
+  document.getElementById('metric-latency').innerHTML = ENGINE.metrics.lastLatency + '<span style="font-size:0.7rem">ms</span>';
+  document.getElementById('metric-pending').textContent = Object.values(CLIENTS).reduce((s, c) => s + c.pending, 0);
+}
+
+// ─── Auto-Sync on Input ─────────────────────────────────────────────────────
+
+document.querySelectorAll('.doc-field').forEach(el => {
+  el.addEventListener('input', () => {
+    const clientId = el.id.startsWith('a-') ? 'a' : 'b';
+    syncClient(clientId);
   });
-}
+  el.addEventListener('change', () => {
+    const clientId = el.id.startsWith('a-') ? 'a' : 'b';
+    syncClient(clientId);
+  });
+});
+
+// ─── Initial Sync ───────────────────────────────────────────────────────────
+
+setTimeout(() => updateClientUI('a'), 200);
+setTimeout(() => updateClientUI('b'), 250);
 </script>
 </body>
 </html>
