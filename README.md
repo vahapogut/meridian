@@ -30,6 +30,8 @@
   <img src="https://img.shields.io/badge/Vue-composables-green?logo=vue.js" alt="Vue">
   <img src="https://img.shields.io/badge/Flutter-SDK-blue?logo=flutter" alt="Flutter">
   <img src="https://img.shields.io/badge/Rust-WASM-orange?logo=rust" alt="Rust">
+  <img src="https://img.shields.io/badge/Svelte-5-orange?logo=svelte" alt="Svelte">
+  <img src="https://img.shields.io/badge/WebRTC-P2P-red" alt="WebRTC">
   <img src="https://img.shields.io/badge/E2E-encrypted-green" alt="E2E Encryption">
 </p>
 
@@ -125,6 +127,11 @@ Meridian solves this by abstracting the entire sync layer into a single, cohesiv
 * **Row-Level Permissions:** Server-side `RuleEvaluator` filters changes by auth context. Users only see authorized rows.
 * **SQLite Adapter:** Full `SQLiteStore` implementing the StorageAdapter interface — works with better-sqlite3, sql.js, and Turso.
 * **React Native SDK:** `meridian-react-native` — AsyncStorage-backed client with the same hooks API as the browser.
+* **Svelte 5 Stores:** `meridian-svelte` — $state runes, reactive queries, presence, mutations.
+* **Auth Adapters:** Drop-in Supabase Auth, Auth0, Clerk, and generic JWT verification.
+* **Observability:** Prometheus-compatible metrics — P95/P99 latency, ops/sec, connected clients.
+* **GraphQL Subscriptions:** Apollo/yoga compatible async iterator bridge.
+* **WebRTC P2P:** Serverless peer-to-peer sync via DataChannel. No central server needed.
 
 ## Quick Start
 
@@ -138,6 +145,7 @@ npm install meridian-shared meridian-client meridian-server
 npm install meridian-react-sync   # React hooks
 npm install meridian-vue          # Vue composables
 npm install meridian-react-native # React Native
+npm install meridian-svelte       # Svelte 5
 
 # CLI
 npm install -g meridiandb-cli
@@ -155,6 +163,7 @@ dart pub add meridian_sync
 | Vue composables | [meridian-vue](https://www.npmjs.com/package/meridian-vue) |
 | React Native | [meridian-react-native](https://www.npmjs.com/package/meridian-react-native) |
 | CLI tools | [meridiandb-cli](https://www.npmjs.com/package/meridiandb-cli) |
+| Svelte 5 | [meridian-svelte](https://www.npmjs.com/package/meridian-svelte) |
 | Flutter | [meridian_sync](https://pub.dev/packages/meridian_sync) |
 
 ### 2. Define your Schema (Shared)
@@ -352,10 +361,17 @@ Meridian is evolving to become the ultimate infra product for local-first develo
 - [x] **Flutter SDK:** `meridian_sync` Dart package — HLC + LWW CRDT + sqflite + WebSocket.
 - [x] **Rust WASM Core:** `meridian-core` crate — HlcClock + LwwMap compiled to WebAssembly.
 
+### Done in v0.7.0
+- [x] **Svelte 5 Stores:** `meridian-svelte` — $state runes, useQuery, useLiveQuery, useDoc, useSync, useMutation.
+- [x] **Auth Adapters:** Supabase Auth, Auth0, Clerk, generic JWT — drop-in ready.
+- [x] **Observability:** Prometheus-compatible MetricsCollector — P95/P99 latency, ops/sec, uptime.
+- [x] **GraphQL Subscriptions:** `MeridianPubSub` — Apollo/yoga compatible async iterator.
+- [x] **WebRTC P2P Transport:** `WebRTCTransport` — serverless peer-to-peer sync via DataChannel.
+
 ### Coming Next
-- [ ] **Svelte stores:** Svelte 5 integration.
-- [ ] **GraphQL sync:** Subscribe to changes via GraphQL subscriptions.
-- [ ] **P2P sync:** WebRTC data channel transport for serverless sync.
+- [ ] **TypeDoc API docs:** Full generated API documentation site.
+- [ ] **SQLite WASM (browser):** sql.js-backed browser persistence for larger datasets.
+- [ ] **Benchmark CI:** Automated benchmark tracking on every commit.
 
 ## Performance
 
