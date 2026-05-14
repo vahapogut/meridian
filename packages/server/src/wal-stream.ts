@@ -133,7 +133,6 @@ class WALStream {
   private config: WALStreamConfig;
   private client: Client | null = null;
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
-  private lastLSN: string | null = null;
 
   constructor(config: WALStreamConfig) {
     this.config = config;
@@ -177,17 +176,16 @@ class WALStream {
 
     this.pollingInterval = setInterval(async () => {
       try {
-        const query = this.lastLSN
-          ? `SELECT data FROM pg_logical_slot_get_changes($1, NULL, NULL, 'include-timestamp', '1') WHERE lsn > $2`
-          : `SELECT data FROM pg_logical_slot_get_changes($1, NULL, NULL, 'include-timestamp', '1')`;
-
-        const params = this.lastLSN ? [slotName, this.lastLSN] : [slotName];
-        const { rows } = await this.client!.query(query, params);
+        // pg_logical_slot_get_changes auto-advances the slot cursor —
+        // each call returns only new changes since the last call.
+        const { rows } = await this.client!.query(
+          `SELECT data FROM pg_logical_slot_get_changes($1, NULL, NULL)`,
+          [slotName]
+        );
 
         for (const row of rows) {
           const parsed = this.parsePGOutput(row.data);
           if (parsed) {
-            if (parsed.lsn) this.lastLSN = parsed.lsn;
             this.config.onChange({
               collection: parsed.collection,
               docId: parsed.docId,
@@ -207,7 +205,7 @@ class WALStream {
   }
 
   /** Parse wal2json JSON output into a WALChange */
-  private parsePGOutput(data: string): { collection: string; docId: string; operation: 'INSERT' | 'UPDATE' | 'DELETE'; lsn?: string; seq?: number } | null {
+  private parsePGOutput(data: string): { collection: string; docId: string; operation: 'INSERT' | 'UPDATE' | 'DELETE'; seq?: number } | null {
     try {
       // wal2json format: { "change": [{ "kind": "insert"|"update"|"delete", "table": "...", ... }] }
       const parsed = JSON.parse(data);
