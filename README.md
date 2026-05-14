@@ -22,6 +22,8 @@
   <img src="https://img.shields.io/badge/React_Native-mobile-blue?logo=react" alt="React Native">
   <img src="https://img.shields.io/badge/SQLite-adapter-orange?logo=sqlite" alt="SQLite">
   <img src="https://img.shields.io/badge/Vue-composables-green?logo=vue.js" alt="Vue">
+  <img src="https://img.shields.io/badge/Flutter-SDK-blue?logo=flutter" alt="Flutter">
+  <img src="https://img.shields.io/badge/Rust-WASM-orange?logo=rust" alt="Rust">
   <img src="https://img.shields.io/badge/E2E-encrypted-green" alt="E2E Encryption">
 </p>
 
@@ -314,11 +316,13 @@ Meridian is evolving to become the ultimate infra product for local-first develo
 - [x] **Snapshot Recovery:** Periodic snapshots. O(snapshot + delta) sync instead of O(all_ops).
 - [x] **Transport Abstraction:** `Transport` interface + `WebSocketTransport`. WebRTC/TCP/Redis ready.
 - [x] **Multiplayer Demo:** `demo/multiplayer.html` — interactive field-level CRDT merge visualization.
+- [x] **Flutter SDK:** `meridian_sync` Dart package — HLC + LWW CRDT + sqflite + WebSocket.
+- [x] **Rust WASM Core:** `meridian-core` crate — HlcClock + LwwMap compiled to WebAssembly.
 
 ### Coming Next
-- [ ] **Flutter SDK:** Dart/Flutter client for cross-platform mobile.
-- [ ] **Rust Core:** WASM-compiled core for maximum performance.
 - [ ] **Svelte stores:** Svelte 5 integration.
+- [ ] **GraphQL sync:** Subscribe to changes via GraphQL subscriptions.
+- [ ] **P2P sync:** WebRTC data channel transport for serverless sync.
 
 ## Performance
 
