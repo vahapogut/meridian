@@ -20,7 +20,7 @@ export {
 // Internal (for advanced use cases)
 export { MeridianStore } from './store.js';
 export { SyncEngine } from './sync.js';
-export { CollectionProxy, type Query, type Subscriber, type Unsubscribe } from './reactive.js';
+export { CollectionProxy, type Query, type Subscriber, type Unsubscribe, type LiveQueryOptions } from './reactive.js';
 export { TabCoordinator, type TabRole } from './tab-coordinator.js';
 export { PresenceManager, type PresenceData, type PresenceCallback } from './presence.js';
 export { DebugManager } from './debug.js';

@@ -74,3 +74,14 @@ export {
   type SchemaDefinition,
   type InferDocument,
 } from './schema.js';
+
+// Permissions — Row-level access control DSL
+export {
+  defineRules,
+  RuleEvaluator,
+  type AuthContext,
+  type DocAccessContext,
+  type RuleFn,
+  type CollectionRules,
+  type PermissionRules,
+} from './permissions.js';
