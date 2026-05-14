@@ -102,6 +102,7 @@ export {
   type Transport,
   type TransportConfig,
   type TransportType,
+  type ExperimentalTransportType,
 } from './transport.js';
 
 // Crypto — E2E encryption layer

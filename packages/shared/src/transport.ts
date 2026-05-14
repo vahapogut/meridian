@@ -109,16 +109,19 @@ export class WebSocketTransport implements Transport {
 
 // ─── Transport Factory ──────────────────────────────────────────────────────
 
-export type TransportType = 'websocket' | 'webrtc' | 'tcp' | 'redis' | 'nats' | 'kafka';
+/** Currently supported transports */
+export type TransportType = 'websocket';
+
+/** Planned transports (not yet implemented) */
+export type ExperimentalTransportType = 'webrtc' | 'tcp' | 'redis' | 'nats' | 'kafka';
 
 export interface TransportConfig {
-  type: TransportType;
+  type: TransportType | ExperimentalTransportType;
   url: string;
-  /** Additional transport-specific options */
   options?: Record<string, unknown>;
 }
 
-/** Create a transport by type */
+/** Create a transport by type. Experimental transports throw with a clear message. */
 export function createTransport(config: TransportConfig): Transport {
   switch (config.type) {
     case 'websocket':
