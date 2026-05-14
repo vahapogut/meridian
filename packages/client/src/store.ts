@@ -31,6 +31,28 @@ const META_STORE = '_meridian_meta';
 const PENDING_STORE = '_meridian_pending';
 const SYNC_STATE_STORE = '_meridian_sync';
 
+/** Check if error is an IndexedDB quota exceeded error */
+function isQuotaError(err: unknown): boolean {
+  if (err instanceof DOMException) {
+    return err.name === 'QuotaExceededError' ||
+           err.name === 'UnknownError' && err.message.includes('quota');
+  }
+  return false;
+}
+
+/** Wrapper for IndexedDB operations that handles quota and common errors */
+function wrapIDBError(err: unknown, operation: string): never {
+  if (isQuotaError(err)) {
+    throw new Error(
+      `[Meridian Store] Storage quota exceeded during ${operation}. ` +
+      `Clear some browser storage or increase the quota.`
+    );
+  }
+  throw new Error(
+    `[Meridian Store] IndexedDB error during ${operation}: ${String(err)}`
+  );
+}
+
 export interface StoreConfig {
   /** Database name (derived from server URL or custom) */
   dbName: string;
@@ -80,40 +102,44 @@ export class MeridianStore {
     const { dbName, schema } = this.config;
     const collectionNames = Object.keys(schema.collections);
 
-    this.db = await openDB(`${DB_NAME_PREFIX}_${dbName}`, schema.version, {
-      upgrade(db, oldVersion, newVersion) {
-        // Create collection stores
-        for (const name of collectionNames) {
-          if (!db.objectStoreNames.contains(name)) {
-            const store = db.createObjectStore(name, { keyPath: 'id' });
-            // Create index for every field except id to enable O(1) finds
-            const schemaDef = schema.collections[name];
-            if (schemaDef) {
-              for (const field of Object.keys(schemaDef)) {
-                if (field !== 'id') store.createIndex(field, field);
+    try {
+      this.db = await openDB(`${DB_NAME_PREFIX}_${dbName}`, schema.version, {
+        upgrade(db, oldVersion, newVersion) {
+          // Create collection stores
+          for (const name of collectionNames) {
+            if (!db.objectStoreNames.contains(name)) {
+              const store = db.createObjectStore(name, { keyPath: 'id' });
+              // Create index for every field except id to enable O(1) finds
+              const schemaDef = schema.collections[name];
+              if (schemaDef) {
+                for (const field of Object.keys(schemaDef)) {
+                  if (field !== 'id') store.createIndex(field, field);
+                }
               }
             }
           }
-        }
 
-        // Create metadata store
-        if (!db.objectStoreNames.contains(META_STORE)) {
-          db.createObjectStore(META_STORE);
-        }
+          // Create metadata store
+          if (!db.objectStoreNames.contains(META_STORE)) {
+            db.createObjectStore(META_STORE);
+          }
 
-        // Create pending ops store
-        if (!db.objectStoreNames.contains(PENDING_STORE)) {
-          const store = db.createObjectStore(PENDING_STORE, { keyPath: 'id' });
-          store.createIndex('status', 'status');
-          store.createIndex('createdAt', 'createdAt');
-        }
+          // Create pending ops store
+          if (!db.objectStoreNames.contains(PENDING_STORE)) {
+            const store = db.createObjectStore(PENDING_STORE, { keyPath: 'id' });
+            store.createIndex('status', 'status');
+            store.createIndex('createdAt', 'createdAt');
+          }
 
-        // Create sync state store
-        if (!db.objectStoreNames.contains(SYNC_STATE_STORE)) {
-          db.createObjectStore(SYNC_STATE_STORE);
-        }
-      },
-    });
+          // Create sync state store
+          if (!db.objectStoreNames.contains(SYNC_STATE_STORE)) {
+            db.createObjectStore(SYNC_STATE_STORE);
+          }
+        },
+      });
+    } catch (err) {
+      wrapIDBError(err, 'init');
+    }
   }
 
   private ensureDB(): IDBPDatabase {

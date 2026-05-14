@@ -47,6 +47,19 @@ const MAX_RETRY_DELAY = 30000;
 const HEARTBEAT_INTERVAL = 25000;
 const PUSH_BATCH_SIZE = 50;
 
+/** Known server message types for validation */
+const VALID_SERVER_MESSAGE_TYPES = new Set([
+  'changes', 'ack', 'reject', 'presence', 'compaction',
+  'full-sync-required', 'auth-expiring', 'auth-expired', 'auth-ack', 'error',
+]);
+
+/** Validate incoming WebSocket message structure */
+function validateMessage(msg: unknown): msg is ServerMessage {
+  if (typeof msg !== 'object' || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return typeof m.type === 'string' && VALID_SERVER_MESSAGE_TYPES.has(m.type);
+}
+
 /**
  * WebSocket sync engine for Meridian client.
  */
@@ -172,8 +185,12 @@ export class SyncEngine {
         }
 
         try {
-          const msg: ServerMessage = JSON.parse(raw);
-          this.handleMessage(msg);
+          const parsed = JSON.parse(raw);
+          if (!validateMessage(parsed)) {
+            this.log('❌ Invalid message format, ignoring');
+            return;
+          }
+          this.handleMessage(parsed);
         } catch (e) {
           this.log('❌ Failed to parse message:', e);
         }

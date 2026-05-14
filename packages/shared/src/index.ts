@@ -85,3 +85,12 @@ export {
   type CollectionRules,
   type PermissionRules,
 } from './permissions.js';
+
+// Storage — Backend adapter interface
+export {
+  type StorageAdapter,
+  type StorageAdapterConfig,
+  type PostgresAdapterConfig,
+  type SQLiteAdapterConfig,
+  type ConflictInfo,
+} from './storage.js';
