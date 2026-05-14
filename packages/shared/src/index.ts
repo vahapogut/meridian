@@ -102,6 +102,13 @@ export {
   estimateBinarySavings,
 } from './binary-codec.js';
 
+// WebRTC — P2P Transport
+export {
+  WebRTCTransport,
+  type SignalServer,
+  type SignalMessage,
+} from './webrtc-transport.js';
+
 // Transport — Abstraction layer (WebSocket, WebRTC, TCP, Redis, etc.)
 export {
   WebSocketTransport,

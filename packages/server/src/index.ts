@@ -14,6 +14,9 @@ export { createWALStream, type WALStreamConfig, type WALChange } from './wal-str
 export { SQLiteStore, type SQLiteStoreConfig, type SQLDriver, type SQLStatement } from './sqlite-store.js';
 export { MySQLStore, type MySQLStoreConfig, type MySQLPool } from './mysql-store.js';
 export { SnapshotManager, type Snapshot, type SnapshotConfig, type CollectionSnapshot } from './snapshot.js';
+export { supabaseAuth, auth0Auth, clerkAuth, jwtAuth, type AuthAdapter, type AuthAdapterConfig } from './auth-adapters.js';
+export { MetricsCollector, type MetricsSnapshot } from './metrics.js';
+export { MeridianPubSub, bridgeToGraphQL, type MeridianChange } from './graphql.js';
 
 // Re-export from shared for convenience
 export {
